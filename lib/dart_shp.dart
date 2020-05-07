@@ -10,6 +10,7 @@ import 'package:chunked_stream/chunked_stream.dart';
 import 'package:timezone/timezone.dart';
 
 part 'src/com/hydrologis/dart_shp/dbase_reader.dart';
+part 'src/com/hydrologis/dart_shp/dbase_header.dart';
 part 'src/com/hydrologis/dart_shp/utils.dart';
 part 'src/com/hydrologis/dart_shp/shapetype.dart';
 

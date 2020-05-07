@@ -85,6 +85,64 @@ void main() async {
     assertEquals(header.getFieldClass(1), String);
     assertEquals(header.getFieldLength(1), 20);
   });
+
+
+    // TODO add the following that require a writer also
+    // @Test
+    // public void testEmptyFields() throws Exception {
+    //     DbaseFileHeader header = new DbaseFileHeader();
+    //     header.addColumn("emptyString", 'C', 20, 0);
+    //     header.addColumn("emptyInt", 'N', 20, 0);
+    //     header.addColumn("emptyDouble", 'N', 20, 5);
+    //     header.addColumn("emptyFloat", 'F', 20, 5);
+    //     header.addColumn("emptyLogical", 'L', 1, 0);
+    //     header.addColumn("emptyDate", 'D', 20, 0);
+    //     header.setNumRecords(20);
+    //     File f = new File(System.getProperty("java.io.tmpdir"), "scratchDBF.dbf");
+    //     f.deleteOnExit();
+    //     try (FileOutputStream fout = new FileOutputStream(f)) {
+    //         DbaseFileWriter dbf =
+    //                 new DbaseFileWriter(header, fout.getChannel(), Charset.defaultCharset());
+    //         for (int i = 0; i < header.getNumRecords(); i++) {
+    //             dbf.write(new Object[6]);
+    //         }
+    //     }
+    //     ShpFiles tempShpFiles = new ShpFiles(f);
+    //     try (DbaseFileReader r =
+    //             new DbaseFileReader(
+    //                     tempShpFiles, false, ShapefileDataStore.DEFAULT_STRING_CHARSET)) {
+    //         int cnt = 0;
+    //         while (r.hasNext()) {
+    //             cnt++;
+    //             Object[] o = r.readEntry();
+    //             assertTrue(o.length == r.getHeader().getNumFields());
+    //         }
+    //         assertEquals("Bad number of records", cnt, 20);
+    //     } finally {
+    //         f.delete();
+    //     }
+    // }
+
+    // @Test
+    // public void testFieldFormatter() throws Exception {
+    //     DbaseFileWriter.FieldFormatter formatter =
+    //             new DbaseFileWriter.FieldFormatter(
+    //                     Charset.defaultCharset(), TimeZone.getDefault(), false);
+
+    //     String stringWithInternationChars = "hello " + '\u20ac';
+    //     // if (verbose) {
+    //     // System.out.println(stringWithInternationChars);
+    //     // }
+    //     String formattedString = formatter.getFieldString(10, stringWithInternationChars);
+
+    //     assertEquals("          ".getBytes().length, formattedString.getBytes().length);
+
+    //     // test when the string is too big.
+    //     stringWithInternationChars = '\u20ac' + "1234567890";
+    //     formattedString = formatter.getFieldString(10, stringWithInternationChars);
+
+    //     assertEquals("          ".getBytes().length, formattedString.getBytes().length);
+    // }
 }
 
 Future<DbaseFileReader> openStates(File statesDbf) async {
