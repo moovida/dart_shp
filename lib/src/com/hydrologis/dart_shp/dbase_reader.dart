@@ -13,18 +13,19 @@ class Row {
 
   Row(this.fieldOffsets, this.header, this.readObject);
 
-  Object read(final int column) {
+  dynamic read(final int column) {
     final int offset = fieldOffsets[column];
     return readObject(offset, column);
   }
 
+  @override
   String toString() {
     final ret = StringBuffer('DBF Row - ');
     for (var i = 0; i < header.getNumFields(); i++) {
       ret.write(header.getFieldName(i));
       ret.write(': \'');
       try {
-        ret.write(this.read(i));
+        ret.write(read(i));
       } catch (ioe) {
         ret.write(ioe.getMessage());
       }
@@ -101,34 +102,8 @@ class DbaseFileReader {
     // TimeZone calTimeZone = timeZone == null ? TimeZone.UTC : timeZone;
 
     header = DbaseFileHeader();
-
-    // create the ByteBuffer
-    // if we have a FileChannel, lets map it
-    // if (channel instanceof FileChannel && this.useMemoryMappedBuffer) {
-    //     final FileChannel fc = (FileChannel) channel;
-    //     if ((fc.size() - fc.position()) < (long) Integer.MAX_VALUE) {
-    //         buffer = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
-    //     } else {
-    //         buffer = fc.map(FileChannel.MapMode.READ_ONLY, 0, Integer.MAX_VALUE);
-    //     }
-    //     buffer.position((int) fc.position());
-    //     header.readHeader(buffer);
-
-    //     this.currentOffset = 0;
-    // } else {
-    // Force useMemoryMappedBuffer to false
     await header.readHeaderWithCharset(channel, stringCharset);
-    // // Some other type of channel
-    // // size the buffer so that we can read 4 records at a time (and make the buffer
-    // // cacheable)
-    // // int size = (int) Math.pow(2, Math.ceil(Math.log(header.getRecordLength()) /
-    // // Math.log(2)));
-    // buffer = NIOUtilities.allocate(header.getRecordLength());
-    // // fill it and reset
-    // fill(buffer, channel);
-    // buffer.flip();
-    this.currentOffset = header.getHeaderLength();
-    // }
+    currentOffset = header.getHeaderLength();
 
     // Set up some buffers and lookups for efficiency
     fieldTypes = List(header.getNumFields());
@@ -151,29 +126,6 @@ class DbaseFileReader {
 
     row = Row(fieldOffsets, header, readObject);
   }
-
-  //  int fill(final ByteBuffer buffer, final ChunkedStreamIterator channel)
-  //          {
-  //     int r = buffer.remaining();
-  //     // channel reads return -1 when EOF or other error
-  //     // because they a non-blocking reads, 0 is a valid return value!!
-  //     while (buffer.remaining() > 0 && r != -1) {
-  //         r = channel.read(buffer);
-  //     }
-  //     if (r == -1) {
-  //         buffer.limit(buffer.position());
-  //     }
-  //     return r;
-  // }
-
-  //  void bufferCheck()  {
-  //     // remaining is less than record length
-  //     // compact the remaining data and read again
-  //         this.currentOffset += buffer.position();
-  //         buffer.compact();
-  //         fill(buffer, channel);
-  //         buffer.position(0);
-  // }
 
   /// Get the header from this file. The header is read upon instantiation.
   ///
@@ -295,10 +247,8 @@ class DbaseFileReader {
   //     cnt++;
   // }
 
-  /**
-     * Reads the next record into memory. You need to use this directly when reading only a subset
-     * of the fields using {@link #readField(int)}.
-     */
+  /// Reads the next record into memory. You need to use this directly when reading only a subset
+  /// of the fields using {@link #readField(int)}.
   Future read() async {
     var foundRecord = false;
     while (!foundRecord) {
@@ -320,13 +270,11 @@ class DbaseFileReader {
     cnt++;
   }
 
-  /**
-     * Copy the next entry into the array.
-     *
-     * @param entry The array to copy into.
-     * @ If an error occurs.
-     * @return The same array passed in.
-     */
+  /// Copy the next entry into the array.
+  ///
+  /// @param entry The array to copy into.
+  /// @ If an error occurs.
+  /// @return The same array passed in.
   Future<List<dynamic>> readEntryInto(final List<dynamic> entry) async {
     return await readEntryWithOffset(entry, 0);
   }
@@ -409,8 +357,6 @@ class DbaseFileReader {
         // (@) Timestamp (Date)
         case '@':
           try {
-            // TODO: Find a smarter way to do this.
-            // timestampBytes = bytes[fieldOffset:fieldOffset+7]
             var timestampBytes = [
               // Time in millis, after reverse.
               bytes[fieldOffset + 7], bytes[fieldOffset + 6],

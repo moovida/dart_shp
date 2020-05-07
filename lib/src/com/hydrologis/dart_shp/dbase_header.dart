@@ -185,9 +185,7 @@ class DbaseFileHeader {
 
     // set the field name
     String tempFieldName = inFieldName;
-    if (tempFieldName == null) {
-      tempFieldName = 'NoName';
-    }
+    tempFieldName ??= 'NoName';
     // Fix for GEOT-42, ArcExplorer will not handle field names > 10 chars
     // Sorry folks.
     if (tempFieldName.length > 10) {
@@ -353,69 +351,55 @@ class DbaseFileHeader {
     return fields[inIndex].fieldType;
   }
 
-  /**
-     * Get the date this file was last updated.
-     *
-     * @return The Date last modified.
-     */
+  /// Get the date this file was last updated.
+  ///
+  /// @return The Date last modified.
   DateTime getLastUpdateDate() {
     return date;
   }
 
-  /**
-     * Return the number of fields in the records.
-     *
-     * @return The number of fields in this table.
-     */
+  /// Return the number of fields in the records.
+  ///
+  /// @return The number of fields in this table.
   int getNumFields() {
     return fields.length;
   }
 
-  /**
-   * Return the number of records in the file
-   *
-   * @return The number of records in this table.
-   */
+  /// Return the number of records in the file
+  ///
+  /// @return The number of records in this table.
   int getNumRecords() {
     return recordCnt;
   }
 
-  /**
-   * Get the length of the records in bytes.
-   *
-   * @return The number of bytes per record.
-   */
+  /// Get the length of the records in bytes.
+  ///
+  /// @return The number of bytes per record.
   int getRecordLength() {
     return recordLength;
   }
 
-  /**
-   * Get the length of the header
-   *
-   * @return The length of the header in bytes.
-   */
+  /// Get the length of the header
+  ///
+  /// @return The length of the header in bytes.
   int getHeaderLength() {
     return headerLength;
   }
 
-  /**
-   * Read the header data from the DBF file.
-   *
-   * @param channel A readable byte channel. If you have an InputStream you need to use, you can
-   *     call java.nio.Channels.getChannel(InputStream in).
-   * @ If errors occur while reading.
-   */
+  /// Read the header data from the DBF file.
+  ///
+  /// @param channel A readable byte channel. If you have an InputStream you need to use, you can
+  ///     call java.nio.Channels.getChannel(InputStream in).
+  /// @ If errors occur while reading.
   Future<void> readHeader(FileReader channel) async {
     await readHeaderWithCharset(channel, Charset.defaultCharset());
   }
 
-  /**
-   * Read the header data from the DBF file.
-   *
-   * @param channel A readable byte channel. If you have an InputStream you need to use, you can
-   *     call java.nio.Channels.getChannel(InputStream in).
-   * @ If errors occur while reading.
-   */
+  /// Read the header data from the DBF file.
+  ///
+  /// @param channel A readable byte channel. If you have an InputStream you need to use, you can
+  ///     call java.nio.Channels.getChannel(InputStream in).
+  /// @ If errors occur while reading.
   Future<void> readHeaderWithCharset(
       FileReader channel, Charset charset) async {
     Endian endian = Endian.little;
@@ -511,31 +495,27 @@ class DbaseFileHeader {
     fields = lfields;
   }
 
-  /**
-     * Get the largest field size of this table.
-     *
-     * @return The largest field size in bytes.
-     */
+  /// Get the largest field size of this table.
+  ///
+  /// @return The largest field size in bytes.
   int getLargestFieldSize() {
     return largestFieldSize;
   }
 
-  /**
-     * Set the number of records in the file
-     *
-     * @param inNumRecords The number of records.
-     */
+  /// Set the number of records in the file
+  ///
+  /// @param inNumRecords The number of records.
   void setNumRecords(int inNumRecords) {
     recordCnt = inNumRecords;
   }
 
   /**
-     * Write the header data to the DBF file.
-     *
-     * @param out A channel to write to. If you have an OutputStream you can obtain the correct
-     *     channel by using java.nio.Channels.newChannel(OutputStream out).
-     * @ If errors occur.
-     */
+   * Write the header data to the DBF file.
+   *
+   * @param out A channel to write to. If you have an OutputStream you can obtain the correct
+   *     channel by using java.nio.Channels.newChannel(OutputStream out).
+   * @ If errors occur.
+   */
   //  void writeHeader(WritableByteChannel out)  {
   //     // take care of the annoying case where no records have been added...
   //     if (headerLength == -1) {
@@ -612,11 +592,10 @@ class DbaseFileHeader {
   //     }
   // }
 
-  /**
-     * Get a simple representation of this header.
-     *
-     * @return A String representing the state of the header.
-     */
+  /// Get a simple representation of this header.
+  ///
+  /// @return A String representing the state of the header.
+  @override
   String toString() {
     StringBuffer fs = StringBuffer();
     for (int i = 0, ii = fields.length; i < ii; i++) {
@@ -638,7 +617,7 @@ class DbaseFileHeader {
         fs.toString();
   }
 
-  /** Returns the expected file size for the given number of records in the file */
+  /// Returns the expected file size for the given number of records in the file */
   int getLengthForRecords(int records) {
     return headerLength + records * recordLength;
   }

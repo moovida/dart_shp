@@ -8,13 +8,13 @@ import 'testing_utilities.dart';
 void main() async {
   File statesDbf;
   setUpAll(() async {
-    statesDbf = File("./test/shapes/statepop.dbf");
+    statesDbf = File('./test/shapes/statepop.dbf');
   });
 
   tearDownAll(() {});
 
-  group("DbaseFileTests - ", () {
-    test("testNumberOfColsLoaded", () async {
+  group('DbaseFileTests - ', () {
+    test('testNumberOfColsLoaded', () async {
       var dbf = await openStates(statesDbf);
 
       var header = dbf.getHeader();
@@ -23,17 +23,17 @@ void main() async {
 
       dbf?.close();
     });
-    test("testDataLoaded", () async {
+    test('testDataLoaded', () async {
       var dbf = await openStates(statesDbf);
 
       List<dynamic> attrs =
           await dbf.readEntryInto(List(dbf.getHeader().getNumFields()));
-      expect(attrs[0], "Illinois");
+      expect(attrs[0], 'Illinois');
       expect(attrs[4] as double, 143986.61);
 
       dbf?.close();
     });
-    test("testRowVsEntry", () async {
+    test('testRowVsEntry', () async {
       var dbf = await openStates(statesDbf);
       var dbf2 = await openStates(statesDbf);
 
@@ -52,31 +52,31 @@ void main() async {
 
       dbf?.close();
     });
-    test("testHeader", () async {
-      DbaseFileHeader header = new DbaseFileHeader();
+    test('testHeader', () async {
+      DbaseFileHeader header = DbaseFileHeader();
 
-      header.addColumn("emptyString", 'C', 20, 0);
-      header.addColumn("emptyInt", 'N', 20, 0);
-      header.addColumn("emptyDouble", 'N', 20, 5);
-      header.addColumn("emptyFloat", 'F', 20, 5);
-      header.addColumn("emptyLogical", 'L', 1, 0);
-      header.addColumn("emptyDate", 'D', 20, 0);
+      header.addColumn('emptyString', 'C', 20, 0);
+      header.addColumn('emptyInt', 'N', 20, 0);
+      header.addColumn('emptyDouble', 'N', 20, 5);
+      header.addColumn('emptyFloat', 'F', 20, 5);
+      header.addColumn('emptyLogical', 'L', 1, 0);
+      header.addColumn('emptyDate', 'D', 20, 0);
       int length = header.getRecordLength();
-      header.removeColumn("emptyDate");
+      header.removeColumn('emptyDate');
       assertTrue(length != header.getRecordLength());
-      header.addColumn("emptyDate", 'D', 20, 0);
+      header.addColumn('emptyDate', 'D', 20, 0);
       assertTrue(length == header.getRecordLength());
-      header.removeColumn("billy");
+      header.removeColumn('billy');
       assertTrue(length == header.getRecordLength());
     });
-    test("testAddColumn", () async {
-      DbaseFileHeader header = new DbaseFileHeader();
+    test('testAddColumn', () async {
+      DbaseFileHeader header = DbaseFileHeader();
 
-      header.addColumn("emptyInt", 'N', 9, 0);
+      header.addColumn('emptyInt', 'N', 9, 0);
       assertEquals(header.getFieldClass(0), int);
       assertEquals(header.getFieldLength(0), 9);
 
-      header.addColumn("emptyString", 'C', 20, 0);
+      header.addColumn('emptyString', 'C', 20, 0);
       assertEquals(header.getFieldClass(1), String);
       assertEquals(header.getFieldLength(1), 20);
     });
@@ -86,14 +86,14 @@ void main() async {
   // @Test
   // public void testEmptyFields() throws Exception {
   //     DbaseFileHeader header = new DbaseFileHeader();
-  //     header.addColumn("emptyString", 'C', 20, 0);
-  //     header.addColumn("emptyInt", 'N', 20, 0);
-  //     header.addColumn("emptyDouble", 'N', 20, 5);
-  //     header.addColumn("emptyFloat", 'F', 20, 5);
-  //     header.addColumn("emptyLogical", 'L', 1, 0);
-  //     header.addColumn("emptyDate", 'D', 20, 0);
+  //     header.addColumn('emptyString', 'C', 20, 0);
+  //     header.addColumn('emptyInt', 'N', 20, 0);
+  //     header.addColumn('emptyDouble', 'N', 20, 5);
+  //     header.addColumn('emptyFloat', 'F', 20, 5);
+  //     header.addColumn('emptyLogical', 'L', 1, 0);
+  //     header.addColumn('emptyDate', 'D', 20, 0);
   //     header.setNumRecords(20);
-  //     File f = new File(System.getProperty("java.io.tmpdir"), "scratchDBF.dbf");
+  //     File f = new File(System.getProperty('java.io.tmpdir'), 'scratchDBF.dbf');
   //     f.deleteOnExit();
   //     try (FileOutputStream fout = new FileOutputStream(f)) {
   //         DbaseFileWriter dbf =
@@ -112,7 +112,7 @@ void main() async {
   //             Object[] o = r.readEntry();
   //             assertTrue(o.length == r.getHeader().getNumFields());
   //         }
-  //         assertEquals("Bad number of records", cnt, 20);
+  //         assertEquals('Bad number of records', cnt, 20);
   //     } finally {
   //         f.delete();
   //     }
@@ -124,19 +124,19 @@ void main() async {
   //             new DbaseFileWriter.FieldFormatter(
   //                     Charset.defaultCharset(), TimeZone.getDefault(), false);
 
-  //     String stringWithInternationChars = "hello " + '\u20ac';
+  //     String stringWithInternationChars = 'hello ' + '\u20ac';
   //     // if (verbose) {
   //     // System.out.println(stringWithInternationChars);
   //     // }
   //     String formattedString = formatter.getFieldString(10, stringWithInternationChars);
 
-  //     assertEquals("          ".getBytes().length, formattedString.getBytes().length);
+  //     assertEquals('          '.getBytes().length, formattedString.getBytes().length);
 
   //     // test when the string is too big.
-  //     stringWithInternationChars = '\u20ac' + "1234567890";
+  //     stringWithInternationChars = '\u20ac' + '1234567890';
   //     formattedString = formatter.getFieldString(10, stringWithInternationChars);
 
-  //     assertEquals("          ".getBytes().length, formattedString.getBytes().length);
+  //     assertEquals('          '.getBytes().length, formattedString.getBytes().length);
   // }
 }
 
