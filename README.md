@@ -1,2 +1,4 @@
 # dart_shp
-Dart shapefile reader/writer
+
+This is a early stage work in progress.
+
