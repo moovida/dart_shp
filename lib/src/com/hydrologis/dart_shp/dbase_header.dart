@@ -405,7 +405,7 @@ class DbaseFileHeader {
    *     call java.nio.Channels.getChannel(InputStream in).
    * @ If errors occur while reading.
    */
-  Future<void> readHeader(ChunkedStreamIterator channel) async {
+  Future<void> readHeader(FileReader channel) async {
     await readHeaderWithCharset(channel, Charset.defaultCharset());
   }
 
@@ -417,19 +417,19 @@ class DbaseFileHeader {
    * @ If errors occur while reading.
    */
   Future<void> readHeaderWithCharset(
-      ChunkedStreamIterator channel, Charset charset) async {
+      FileReader channel, Charset charset) async {
     Endian endian = Endian.little;
 
     // type of file.
-    int magic = (await channel.read(1))[0];
+    int magic = await channel.getByte();
     if (magic != MAGIC) {
       throw ArgumentError('Unsupported DBF file Type $magic');
     }
 
     // parse the update date information.
-    int tempUpdateYear = (await channel.read(1))[0];
-    int tempUpdateMonth = (await channel.read(1))[0];
-    int tempUpdateDay = (await channel.read(1))[0];
+    int tempUpdateYear = await channel.getByte();
+    int tempUpdateMonth = await channel.getByte();
+    int tempUpdateDay = await channel.getByte();
     // ouch Y2K uncompliant
     if (tempUpdateYear > 90) {
       tempUpdateYear = tempUpdateYear + 1900;
@@ -440,22 +440,21 @@ class DbaseFileHeader {
 
     // read the number of records.
 
-    var data = Uint8List.fromList(await channel.read(4));
-    recordCnt = ByteConversionUtilities.getInt32(data, endian);
+    recordCnt = await channel.getInt32(endian);
 
     // read the length of the header structure.
     // ahhh.. unsigned little-endian shorts
     // mask out the byte and or it with shifted 2nd byte
-    var list = await channel.read(2);
+    var list = await channel.get(2);
     headerLength = (list[0] & 0xff) | ((list[1] & 0xff) << 8);
 
     // read the length of a record
     // ahhh.. unsigned little-endian shorts
-    list = await channel.read(2);
+    list = await channel.get(2);
     recordLength = (list[0] & 0xff) | ((list[1] & 0xff) << 8);
 
     // skip the reserved bytes in the header.
-    await channel.read(20);
+    await channel.skip(20);
 
     // calculate the number of Fields in the header
     fieldCnt =
@@ -467,7 +466,7 @@ class DbaseFileHeader {
     for (var i = 0; i < fieldCnt; i++) {
       DbaseField field = DbaseField();
 
-      List<int> buffer = (await channel.read(11));
+      List<int> buffer = (await channel.get(11));
       String name = charset.encode(buffer);
       int nullPoint = name.indexOf(String.fromCharCode(0));
       if (nullPoint != -1) {
@@ -476,14 +475,13 @@ class DbaseFileHeader {
       field.fieldName = name.trim();
 
       // read the field type
-      field.fieldType = (await channel.read(1))[0];
+      field.fieldType = await channel.getByte();
 
       // read the field data address, offset from the start of the record.
-      var data = Uint8List.fromList(await channel.read(4));
-      field.fieldDataAddress = ByteConversionUtilities.getInt32(data, endian);
+      field.fieldDataAddress = await channel.getInt32(endian);
 
       // read the field length in bytes
-      int length = (await channel.read(1))[0];
+      int length = await channel.getByte();
       if (length < 0) {
         length = length + 256;
       }
@@ -494,10 +492,10 @@ class DbaseFileHeader {
       }
 
       // read the field decimal count in bytes
-      field.decimalCount = (await channel.read(1))[0];
+      field.decimalCount = await channel.getByte();
 
       // reserved bytes.
-      await channel.read(14);
+      await channel.skip(14);
 
       // some broken shapefiles have 0-length attributes. The reference
       // implementation
@@ -508,7 +506,7 @@ class DbaseFileHeader {
     }
 
     // Last byte is a marker for the end of the field definitions.
-    await channel.read(1);
+    await channel.skip(1);
 
     fields = lfields;
   }

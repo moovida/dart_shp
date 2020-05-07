@@ -86,14 +86,13 @@ class DbaseFileReader {
 
   final int MILLISECS_PER_DAY = 24 * 60 * 60 * 1000;
 
-  ChunkedStreamIterator<int> channel;
+  FileReader channel;
   Charset stringCharset;
   TimeZone timeZone;
 
   DbaseFileReader(File dbfFile,
       [final Charset charset, final TimeZone timeZone])
-      : this.fromStream(
-            ChunkedStreamIterator(dbfFile.openRead()), charset, timeZone);
+      : this.fromStream(FileReader(dbfFile), charset, timeZone);
 
   DbaseFileReader.fromStream(this.channel, this.stringCharset, this.timeZone);
 
@@ -187,10 +186,8 @@ class DbaseFileReader {
   ///
   /// @ If an error occurs.
   void close() {
-    if (channel != null
-        // && channel.isOpen()
-        ) {
-      channel.cancel();
+    if (channel != null && channel.isOpen) {
+      channel.close();
     }
 
     channel = null;
@@ -309,10 +306,10 @@ class DbaseFileReader {
 
       // read the deleted flag
       final deleted = String.fromCharCode(
-          (await channel.read(1))[0]); //   (    char) buffer.get();
+          (await channel.get(1))[0]); //   (    char) buffer.get();
       row.deleted = deleted == '*';
 
-      bytes = await channel.read(header.getRecordLength() - 1);
+      bytes = await channel.get(header.getRecordLength() - 1);
       // buffer.limit(buffer.position() + header.getRecordLength() - 1);
       // buffer.get(bytes); // SK: There is a side-effect here!!!
       // buffer.limit(buffer.capacity());

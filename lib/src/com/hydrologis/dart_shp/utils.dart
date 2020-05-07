@@ -1,8 +1,5 @@
 part of dart_shp;
 
-
-
-
 final LOGGER = Logger(level: Level.verbose);
 
 class TimeZones {
@@ -116,5 +113,41 @@ class ByteConversionUtilities {
         data.add(0);
       }
     }
+  }
+}
+
+/// A reader class to wrap teh buffer method/package used.
+class FileReader {
+  File _file;
+  bool _isOpen = false;
+  ChunkedStreamIterator<int> channel;
+
+  FileReader(this._file) {
+    Stream<List<int>> stream = _file.openRead();
+    channel = ChunkedStreamIterator(stream);
+    _isOpen = true;
+  }
+
+  Future<int> getByte() async {
+    return (await channel.read(1))[0];
+  }
+
+  Future<List<int>> get(int bytesCount) async {
+    return await channel.read(bytesCount);
+  }
+
+  Future<int> getInt32([Endian endian = Endian.big]) async {
+    var data = Uint8List.fromList(await channel.read(4));
+    return ByteConversionUtilities.getInt32(data, endian);
+  }
+
+  Future skip(int bytesToSkip) async {
+    await channel.read(bytesToSkip);
+  }
+
+  bool get isOpen => _isOpen;
+
+  void close(){
+    
   }
 }
