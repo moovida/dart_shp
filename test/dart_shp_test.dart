@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:dart_hydrologis_utils/dart_hydrologis_utils.dart';
 import 'package:dart_shp/dart_shp.dart';
@@ -8,15 +9,20 @@ import 'testing_utilities.dart';
 
 void main() async {
   File statesDbf;
+  File nullsDbf;
+  FieldFormatter victim;
   setUpAll(() async {
     statesDbf = File('./test/shapes/statepop.dbf');
+    nullsDbf = File('./test/shapes/nulls.dbf');
+    victim =
+        FieldFormatter(Charset.defaultCharset(), TimeZones.getDefault(), false);
   });
 
   tearDownAll(() {});
 
   group('DbaseFileTests - ', () {
     test('testNumberOfColsLoaded', () async {
-      var dbf = await openStates(statesDbf);
+      var dbf = await openDbf(statesDbf);
 
       var header = dbf.getHeader();
       var numFields = header.getNumFields();
@@ -25,7 +31,7 @@ void main() async {
       dbf?.close();
     });
     test('testDataLoaded', () async {
-      var dbf = await openStates(statesDbf);
+      var dbf = await openDbf(statesDbf);
 
       List<dynamic> attrs =
           await dbf.readEntryInto(List(dbf.getHeader().getNumFields()));
@@ -35,8 +41,8 @@ void main() async {
       dbf?.close();
     });
     test('testRowVsEntry', () async {
-      var dbf = await openStates(statesDbf);
-      var dbf2 = await openStates(statesDbf);
+      var dbf = await openDbf(statesDbf);
+      var dbf2 = await openDbf(statesDbf);
 
       while (dbf.hasNext()) {
         List<dynamic> attrs =
@@ -199,12 +205,75 @@ void main() async {
         reader.close();
       }
     });
+
+    test('testNull2', () async {
+      /*
+       The nulls.dbf file contains 2 columns: gistool_id (integer) and att_loss (real).
+       There are 4 records:
+       GISTOOL_ID | ATT_LOSS
+       -----------+---------
+         98245    | <all spaces>
+         98289    | ****************** (= all stars)
+         98538    | 0.000000000
+         98586    | 5.210000000
+    */
+      var dbfReader = await openDbf(nullsDbf);
+
+      var records = <int, double>{};
+      while (dbfReader.hasNext()) {
+        final List<dynamic> fields = await dbfReader.readEntry();
+        records[fields[0]] = fields[1];
+      }
+      dbfReader.close();
+
+      assertEqualsD(records[98586], 5.21, 0.00000001);
+      assertEqualsD(records[98538], 0.0, 0.00000001);
+      assertIsNull(records[98289]);
+      assertIsNull(records[98245]);
+    });
+
+    test('testNaN', () async {
+      checkOutput(victim, double.nan, 33, 31);
+    });
+    test('testNegative', () async {
+      checkOutput(victim, -1.0e16, 33, 31);
+    });
+    test('testSmall', () async {
+      checkOutput(victim, 42.123, 33, 31);
+    });
+    test('testLarge', () async {
+      checkOutput(victim, 12345.678, 33, 31);
+    });
   });
 }
 
-Future<DbaseFileReader> openStates(File statesDbf) async {
+String checkOutput(var victim, num n, int sz, int places) {
+  String s = victim.getFieldStringWithDec(sz, places, n);
+
+  // assertEquals("Formatted Output", xpected, s.trim());
+  bool ascii = true;
+  int i, c = 0;
+  ;
+  for (i = 0; i < s.length; i++) {
+    c = s.codeUnitAt(i);
+    if (c > 127) {
+      ascii = false;
+      break;
+    }
+  }
+  assertTrueMsg("ascii [$i]:$c", ascii);
+  assertEquals(sz, s.length);
+
+  assertEqualsD(n.toDouble(), double.parse(s), math.pow(10.0, -places));
+
+  // System.out.printf("%36s->%36s%n", n, s);
+
+  return s;
+}
+
+Future<DbaseFileReader> openDbf(File bdfFile) async {
   var dbf =
-      DbaseFileReader(FileReader(statesDbf), Charset.defaultCharset(), null);
+      DbaseFileReader(FileReader(bdfFile), Charset.defaultCharset(), null);
   await dbf.open();
   return dbf;
 }

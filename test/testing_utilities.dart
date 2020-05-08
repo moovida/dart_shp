@@ -31,7 +31,12 @@ assertEquals(actual, matcher) {
 }
 
 assertEqualsD(double n1, double n2, double tolerance, [String msg]) {
-  expect(NumberUtils.equalsWithTolerance(n1, n2, tolerance), true, reason: msg);
+  if (n1.isNaN && n2.isNaN) {
+    expect((n1.isNaN && n2.isNaN), true);
+  } else {
+    expect(NumberUtils.equalsWithTolerance(n1, n2, tolerance), true,
+        reason: msg);
+  }
 }
 
 assertEqualsExact(Geometry expectedValue, Geometry actualValue) {
@@ -45,6 +50,10 @@ assertTrue(actual) {
 
 assertNotNull(actual) {
   expect(actual != null, true);
+}
+
+assertIsNull(actual) {
+  expect(actual == null, true);
 }
 
 assertTrueMsg(String msg, actual) {
