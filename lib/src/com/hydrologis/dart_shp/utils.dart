@@ -2,6 +2,9 @@ part of dart_shp;
 
 final LOGGER = Logger(level: Level.verbose);
 
+const NULL_CHAR = '\x00';
+final NULL_CHARACTERS = Characters(NULL_CHAR);
+
 class TimeZones {
   String _timeZoneName;
 
@@ -15,6 +18,10 @@ class TimeZones {
 
   static TimeZones getDefault() {
     return TimeZones()..setZone('en_US');
+  }
+
+  static TimeZones getTimeZone(String timeZoneName) {
+    return TimeZones()..setZone(timeZoneName);
   }
 }
 

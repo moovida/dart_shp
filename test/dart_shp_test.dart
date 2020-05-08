@@ -135,6 +135,70 @@ void main() async {
 
       assertEquals('          '.codeUnits.length, format.codeUnits.length);
     });
+    test('testNulls', () async {
+      Charset cs = Charset.defaultCharset(); //("ISO-8859-1");
+
+      TimeZones tz = TimeZones.getTimeZone("UTC");
+      List<String> types = ['C', 'N', 'F', 'L', 'D'];
+      List<int> sizes = [5, 9, 20, 1, 8];
+      List<int> decimals = [0, 0, 31, 0, 0];
+      List<dynamic> values = [
+        "ABCDE",
+        2 << 20,
+        (2 << 10) + 1.0 / (2 << 4),
+        true,
+        TimeUtilities.ISO8601_TS_DAY_FORMATTER.parseUTC("2010-04-01")
+      ];
+
+      var temp = FileUtilities.getTmpFile('dbf');
+
+      DbaseFileHeader header = DbaseFileHeader();
+      for (int i = 0; i < types.length; i++) {
+        header.addColumn("" + types[i], types[i], sizes[i], decimals[i]);
+      }
+      header.setNumRecords(values.length);
+      var fw = FileWriter(temp);
+
+      DbaseFileWriter writer = DbaseFileWriter(header, fw, cs, tz);
+      try {
+        await writer.open();
+        // write records such that the i-th row has nulls in every column except the i-th column
+        for (int row = 0; row < values.length; row++) {
+          List<dynamic> current = List.filled(values.length, null);
+          current[row] = values[row];
+          await writer.writeRecord(current);
+        }
+      } finally {
+        writer.close();
+      }
+
+      var fr = FileReader(temp);
+
+      DbaseFileReader reader = DbaseFileReader(fr, cs, tz);
+      try {
+        await reader.open();
+        assertTrue(values.length == reader.getHeader().getNumRecords());
+        for (int row = 0; row < values.length; row++) {
+          List<dynamic> current = await reader.readEntry();
+          assertTrue(current != null && current.length == values.length);
+          for (int column = 0; column < values.length; column++) {
+            if (column == row) {
+              assertTrue(current[column] != null);
+              assertTrueMsg(
+                  "Non-null column value " +
+                      current[column].toString() +
+                      " did not match original value " +
+                      values[column].toString(),
+                  current[column] == values[column]);
+            } else {
+              assertTrue(current[column] == null);
+            }
+          }
+        }
+      } finally {
+        reader.close();
+      }
+    });
   });
 }
 

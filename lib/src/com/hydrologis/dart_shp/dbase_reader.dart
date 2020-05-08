@@ -83,13 +83,12 @@ class DbaseFileReader {
   int currentOffset = 0;
 
   bool oneBytePerChar;
-  static final NULL_CHAR = Characters('\x00');
 
   final int MILLISECS_PER_DAY = 24 * 60 * 60 * 1000;
 
   FileReader fileReader;
   Charset stringCharset;
-  TimeZone timeZone;
+  TimeZones timeZone;
 
   DbaseFileReader(this.fileReader, [this.stringCharset, this.timeZone]);
 
@@ -156,7 +155,7 @@ class DbaseFileReader {
   /// @ If an error occurs.
   /// @return A array of values.
   Future<List<dynamic>> readEntry() async {
-    return await readEntryInto([header.getNumFields()]);
+    return await readEntryInto(List<dynamic>(header.getNumFields()));
   }
 
   Future<Row> readRow() async {
@@ -252,7 +251,7 @@ class DbaseFileReader {
 
       // read the deleted flag
       final deleted = String.fromCharCode(
-          (await fileReader.get(1))[0]); //   (    char) buffer.get();
+          await fileReader.getByte()); //   (    char) buffer.get();
       row.deleted = deleted == '*';
 
       bytes = await fileReader.get(header.getRecordLength() - 1);
@@ -307,25 +306,26 @@ class DbaseFileReader {
         // (C)character (String)
         case 'c':
         case 'C':
-          // TODO CHECK: if the string begins with a null terminator, the value is null
-          // var str = String.fromCharCode(bytes[fieldOffset]);
-          // if (str != '\0') {
-          // remember we need to skip trailing and leading spaces
-          if (oneBytePerChar) {
-            object = fastParse(bytes, fieldOffset, fieldLen).trim();
-          } else {
-            var sublist = bytes.sublist(fieldOffset, fieldOffset + fieldLen);
-            var string = stringCharset.encode(sublist).trim();
-            var characters = Characters(string);
+          if (bytes[fieldOffset] != NULL_CHAR.codeUnitAt(0)) {
+            // var str = String.fromCharCode(bytes[fieldOffset]);
+            // if (str != '\0') {
+            // remember we need to skip trailing and leading spaces
+            if (oneBytePerChar) {
+              object = fastParse(bytes, fieldOffset, fieldLen).trim();
+            } else {
+              var sublist = bytes.sublist(fieldOffset, fieldOffset + fieldLen);
+              var string = stringCharset.encode(sublist).trim();
+              var characters = Characters(string);
 
-            if (characters.endsWith(NULL_CHAR)) {
-              string = Characters(string)
-                  .skipLastWhile((c) => c == NULL_CHAR.toString())
-                  .toString();
+              if (characters.endsWith(NULL_CHARACTERS)) {
+                string = Characters(string)
+                    .skipLastWhile((c) => c == NULL_CHARACTERS.toString())
+                    .toString();
+              }
+              object = string;
+              // String(bytes, fieldOffset, fieldLen, stringCharset.name())
+              //         .trim();
             }
-            object = string;
-            // String(bytes, fieldOffset, fieldLen, stringCharset.name())
-            //         .trim();
           }
           // }
           break;
@@ -339,7 +339,7 @@ class DbaseFileReader {
                 var tempString = fastParse(bytes, fieldOffset, 4);
                 final tempYear = int.parse(tempString);
                 tempString = fastParse(bytes, fieldOffset + 4, 2);
-                final tempMonth = int.parse(tempString) - 1;
+                final tempMonth = int.parse(tempString);
                 tempString = fastParse(bytes, fieldOffset + 6, 2);
                 final tempDay = int.parse(tempString);
                 object = DateTime.utc(tempYear, tempMonth, tempDay);

@@ -54,7 +54,7 @@ class DbaseFileWriter {
         case 'c':
         case 'M':
         case 'G':
-          nullChar = '\0';
+          nullChar = NULL_CHAR;
           break;
         case 'L':
         case 'l':
@@ -72,7 +72,7 @@ class DbaseFileWriter {
           break;
         case '@':
           // becomes day 0 time 0.
-          nullChar = '\0';
+          nullChar = NULL_CHAR;
           break;
         default:
           // catches at least 'D', and 'd'
@@ -84,7 +84,7 @@ class DbaseFileWriter {
     }
   }
 
-  Future<void> write(var buffer) async {
+  Future<void> write(List<int> buffer) async {
     await channel.put(buffer);
 
     // buffer.position(0);
@@ -128,15 +128,13 @@ class DbaseFileWriter {
     await write(buffer);
   }
 
-  /**
-     * Called to convert the given object to bytes.
-     *
-     * @param obj The value to convert; never null.
-     * @param col The column this object will be encoded into.
-     * @return The bytes of a string representation of the given object in the current character
-     *     encoding.
-     * @throws UnsupportedEncodingException Thrown if the current charset is unsupported.
-     */
+  /// Called to convert the given object to bytes.
+  ///
+  /// @param obj The value to convert; never null.
+  /// @param col The column this object will be encoded into.
+  /// @return The bytes of a string representation of the given object in the current character
+  ///     encoding.
+  /// @throws UnsupportedEncodingException Thrown if the current charset is unsupported.
   List<int> fieldBytes(Object obj, final int col) {
     String o;
     final int fieldLen = header.getFieldLength(col);
@@ -177,14 +175,12 @@ class DbaseFileWriter {
       case 'D':
       case 'd':
         if (obj is DateTime) {
-          o = formatter.getFieldStringDateTime(obj);
-        } else {
           o = formatter.getFieldStringDate(obj);
         }
         break;
       case '@':
         o = formatter.getFieldStringDate(obj);
-        // TODO ceck back on this
+        // TODO check back on this
         // if (bool.getbool("org.geotools.shapefile.datetime")) {
         //     // Adding the charset to getBytes causes the output to
         //     // get altered for the '@: Timestamp' field.
@@ -287,7 +283,7 @@ class FieldFormatter {
       // international characters must be accounted for so size != length.
       int maxSize = size;
       if (s != null) {
-        buffer.replaceRange(0, size, s);
+        buffer = buffer.replaceRange(0, size, s);
         // TODO here Characters might be used
         var subStr = s.substring(0, math.min(size, s.length));
         int currentBytes = charset.decode(subStr).length;
@@ -420,11 +416,17 @@ class FieldFormatter {
         buffer.write(n.toString());
         /* Should we use toString for integral numbers as well? */
       } else {
-        numFormat.maximumFractionDigits = decimalPlaces;
+        var maxDig = decimalPlaces > 16 ? 16 : decimalPlaces;
+        var toAdd = decimalPlaces - 16;
+
+        numFormat.maximumFractionDigits = maxDig;
         numFormat.minimumFractionDigits = decimalPlaces;
         // FieldPosition fp = new FieldPosition(NumberFormat.FRACTION_FIELD);
         // numFormat.format(n, buffer, fp);
         String numStr = numFormat.format(n);
+        for (var i = 0; i < toAdd; i++) {
+          numStr += '0';
+        }
         buffer.write(numStr);
 
         // large-magnitude numbers may overflow the field size in non-exponent notation,

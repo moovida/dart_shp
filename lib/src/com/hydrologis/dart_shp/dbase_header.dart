@@ -450,7 +450,7 @@ class DbaseFileHeader {
     for (var i = 0; i < fieldCnt; i++) {
       DbaseField field = DbaseField();
 
-      List<int> buffer = (await channel.get(10));
+      List<int> buffer = (await channel.get(11));
       String name = charset.encode(buffer);
       int nullPoint = name.indexOf(String.fromCharCode(0));
       if (nullPoint != -1) {
@@ -559,18 +559,19 @@ class DbaseFileHeader {
     for (int i = 0; i < fields.length; i++) {
       // write the field name
       var fn = fields[i].fieldName;
-      if (fn.length < 11) {
-        buffer.addAll(fn.codeUnits); // TODO CHARSET?
-      } else {
-        buffer.addAll(fn.substring(0, 10).codeUnits);
-      }
-      // for (int j = 0; j < 11; j++) {
-      //     if (fields[i].fieldName.length > j) {
-      //         buffer.put((byte) fields[i].fieldName.charAt(j));
-      //     } else {
-      //         buffer.put((byte) 0);
-      //     }
+      // if (fn.length < 11) {
+      //   buffer.addAll(fn.codeUnits); // TODO CHARSET?
+      // } else {
+      //   buffer.addAll(fn.substring(0, 11).codeUnits);
       // }
+
+      for (int j = 0; j < 11; j++) {
+        if (fn.length > j) {
+          buffer.add(fn.codeUnitAt(j));
+        } else {
+          buffer.add(0);
+        }
+      }
 
       // write the field type
       buffer.add(fields[i].fieldType);
