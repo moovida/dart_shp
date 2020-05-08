@@ -87,22 +87,18 @@ class DbaseFileReader {
 
   final int MILLISECS_PER_DAY = 24 * 60 * 60 * 1000;
 
-  FileReader channel;
+  FileReader fileReader;
   Charset stringCharset;
   TimeZone timeZone;
 
-  DbaseFileReader(File dbfFile,
-      [final Charset charset, final TimeZone timeZone])
-      : this.fromStream(FileReader(dbfFile), charset, timeZone);
-
-  DbaseFileReader.fromStream(this.channel, this.stringCharset, this.timeZone);
+  DbaseFileReader(this.fileReader, [this.stringCharset, this.timeZone]);
 
   Future open() async {
     stringCharset = stringCharset ?? Charset.defaultCharset();
     // TimeZone calTimeZone = timeZone == null ? TimeZone.UTC : timeZone;
 
     header = DbaseFileHeader();
-    await header.readHeaderWithCharset(channel, stringCharset);
+    await header.readHeaderWithCharset(fileReader, stringCharset);
     currentOffset = header.getHeaderLength();
 
     // Set up some buffers and lookups for efficiency
@@ -138,11 +134,11 @@ class DbaseFileReader {
   ///
   /// @ If an error occurs.
   void close() {
-    if (channel != null && channel.isOpen) {
-      channel.close();
+    if (fileReader != null && fileReader.isOpen) {
+      fileReader.close();
     }
 
-    channel = null;
+    fileReader = null;
     bytes = null;
     header = null;
     row = null;
@@ -256,10 +252,10 @@ class DbaseFileReader {
 
       // read the deleted flag
       final deleted = String.fromCharCode(
-          (await channel.get(1))[0]); //   (    char) buffer.get();
+          (await fileReader.get(1))[0]); //   (    char) buffer.get();
       row.deleted = deleted == '*';
 
-      bytes = await channel.get(header.getRecordLength() - 1);
+      bytes = await fileReader.get(header.getRecordLength() - 1);
       // buffer.limit(buffer.position() + header.getRecordLength() - 1);
       // buffer.get(bytes); // SK: There is a side-effect here!!!
       // buffer.limit(buffer.capacity());

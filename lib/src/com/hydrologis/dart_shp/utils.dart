@@ -116,15 +116,19 @@ class ByteConversionUtilities {
   }
 }
 
-/// A reader class to wrap teh buffer method/package used.
+/// A reader class to wrap the buffer method/package used.
 class FileReader {
-  File _file;
+  final File _file;
   bool _isOpen = false;
-  ChunkedStreamIterator<int> channel;
+  dynamic channel;
 
-  FileReader(this._file) {
-    Stream<List<int>> stream = _file.openRead();
-    channel = ChunkedStreamIterator(stream);
+  FileReader(this._file, {buffered: false}) {
+    if (buffered) {
+      Stream<List<int>> stream = _file.openRead();
+      channel = ChunkedStreamIterator(stream);
+    } else {
+      channel = _file.openSync();
+    }
     _isOpen = true;
   }
 
@@ -147,7 +151,27 @@ class FileReader {
 
   bool get isOpen => _isOpen;
 
-  void close(){
-    
+  void close() {
+    if (channel is RandomAccessFile) {
+      channel?.closeSync();
+    }
+  }
+}
+
+/// A writer class.
+class FileWriter {
+  final File _file;
+  bool _isOpen = false;
+  RandomAccessFile randomAccessFile;
+
+  FileWriter(this._file) {
+    randomAccessFile = _file.openSync();
+    _isOpen = true;
+  }
+
+  bool get isOpen => _isOpen;
+
+  void close() {
+    randomAccessFile?.closeSync();
   }
 }

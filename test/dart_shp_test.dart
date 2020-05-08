@@ -141,7 +141,8 @@ void main() async {
 }
 
 Future<DbaseFileReader> openStates(File statesDbf) async {
-  var dbf = DbaseFileReader(statesDbf, Charset.defaultCharset(), null);
+  var dbf =
+      DbaseFileReader(FileReader(statesDbf), Charset.defaultCharset(), null);
   await dbf.open();
   return dbf;
 }
