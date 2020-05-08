@@ -93,7 +93,7 @@ class DbaseFileReader {
 
   DbaseFileReader(this.fileReader, [this.stringCharset, this.timeZone]);
 
-  Future open() async {
+  Future<void> open() async {
     stringCharset = stringCharset ?? Charset.defaultCharset();
     // TimeZone calTimeZone = timeZone == null ? TimeZone.UTC : timeZone;
 

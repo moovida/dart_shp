@@ -450,7 +450,7 @@ class DbaseFileHeader {
     for (var i = 0; i < fieldCnt; i++) {
       DbaseField field = DbaseField();
 
-      List<int> buffer = (await channel.get(11));
+      List<int> buffer = (await channel.get(10));
       String name = charset.encode(buffer);
       int nullPoint = name.indexOf(String.fromCharCode(0));
       if (nullPoint != -1) {
@@ -516,81 +516,88 @@ class DbaseFileHeader {
    *     channel by using java.nio.Channels.newChannel(OutputStream out).
    * @ If errors occur.
    */
-  //  void writeHeader(WritableByteChannel out)  {
-  //     // take care of the annoying case where no records have been added...
-  //     if (headerLength == -1) {
-  //         headerLength = MINIMUM_HEADER;
-  //     }
-  //     ByteBuffer buffer = NIOUtilities.allocate(headerLength);
-  //     try {
-  //         buffer.order(ByteOrder.LITTLE_ENDIAN);
+  Future<void> writeHeader(FileWriter out) async {
+    // take care of the annoying case where no records have been added...
+    if (headerLength == -1) {
+      headerLength = MINIMUM_HEADER;
+    }
 
-  //         // write the output file type.
-  //         buffer.put((byte) MAGIC);
+    Endian endian = Endian.little;
+    List<int> buffer = []; //List(headerLength);
+    // write the output file type.
+    buffer.add(MAGIC);
 
-  //         // write the date stuff
-  //         Calendar c = Calendar.getInstance();
-  //         c.setTime(Date());
-  //         buffer.put((byte) (c.get(Calendar.YEAR) % 100));
-  //         buffer.put((byte) (c.get(Calendar.MONTH) + 1));
-  //         buffer.put((byte) (c.get(Calendar.DAY_OF_MONTH)));
+    // write the date stuff
+    DateTime dt = DateTime.now();
+    // // Calendar c = Calendar.getInstance();
+    // c.setTime(Date());
+    buffer.add(dt.year % 100); //        (byte) (c.get(Calendar.YEAR) % 100));
+    buffer.add(dt.month); //   (byte) (c.get(Calendar.MONTH) + 1));
+    buffer.add(dt.day); // (byte) (c.get(Calendar.DAY_OF_MONTH)));
 
-  //         // write the number of records in the datafile.
-  //         buffer.putInt(recordCnt);
+    // write the number of records in the datafile.
+    // buffer.putInt(recordCnt);
+    buffer.addAll(ByteConversionUtilities.bytesFromInt32(recordCnt, endian));
 
-  //         // write the length of the header structure.
-  //         buffer.putShort((short) headerLength);
+    // write the length of the header structure.
+    // buffer.putShort((short) headerLength);
+    buffer.addAll(ByteConversionUtilities.bytesFromInt16(headerLength, endian));
 
-  //         // write the length of a record
-  //         buffer.putShort((short) recordLength);
+    // write the length of a record
+    // buffer.putShort((short) recordLength);
+    buffer.addAll(ByteConversionUtilities.bytesFromInt16(recordLength, endian));
 
-  //         // // write the reserved bytes in the header
-  //         // for (int i=0; i<20; i++) out.writeByteLE(0);
-  //         buffer.position(buffer.position() + 20);
+    // // write the reserved bytes in the header
+    // for (int i=0; i<20; i++) out.writeByteLE(0);
+    // buffer.position(buffer.position() + 20);
+    for (var i = 0; i < 20; i++) {
+      buffer.add(0);
+    }
 
-  //         // write all of the header records
-  //         int tempOffset = 0;
-  //         for (int i = 0; i < fields.length; i++) {
+    // write all of the header records
+    int tempOffset = 0;
+    for (int i = 0; i < fields.length; i++) {
+      // write the field name
+      var fn = fields[i].fieldName;
+      if (fn.length < 11) {
+        buffer.addAll(fn.codeUnits); // TODO CHARSET?
+      } else {
+        buffer.addAll(fn.substring(0, 10).codeUnits);
+      }
+      // for (int j = 0; j < 11; j++) {
+      //     if (fields[i].fieldName.length > j) {
+      //         buffer.put((byte) fields[i].fieldName.charAt(j));
+      //     } else {
+      //         buffer.put((byte) 0);
+      //     }
+      // }
 
-  //             // write the field name
-  //             for (int j = 0; j < 11; j++) {
-  //                 if (fields[i].fieldName.length() > j) {
-  //                     buffer.put((byte) fields[i].fieldName.charAt(j));
-  //                 } else {
-  //                     buffer.put((byte) 0);
-  //                 }
-  //             }
+      // write the field type
+      buffer.add(fields[i].fieldType);
+      // // write the field data address, offset from the start of the
+      // record.
+      buffer.addAll(ByteConversionUtilities.bytesFromInt32(tempOffset));
+      tempOffset += fields[i].fieldLength;
 
-  //             // write the field type
-  //             buffer.put((byte) fields[i].fieldType);
-  //             // // write the field data address, offset from the start of the
-  //             // record.
-  //             buffer.putInt(tempOffset);
-  //             tempOffset += fields[i].fieldLength;
+      // write the length of the field.
+      buffer.add(fields[i].fieldLength);
 
-  //             // write the length of the field.
-  //             buffer.put((byte) fields[i].fieldLength);
+      // write the decimal count.
+      buffer.add(fields[i].decimalCount);
 
-  //             // write the decimal count.
-  //             buffer.put((byte) fields[i].decimalCount);
+      // write the reserved bytes.
+      // for (in j=0; jj<14; j++) out.writeByteLE(0);
+      // buffer.position(buffer.position() + 14);
+      for (var i = 0; i < 14; i++) {
+        buffer.add(0);
+      }
+    }
 
-  //             // write the reserved bytes.
-  //             // for (in j=0; jj<14; j++) out.writeByteLE(0);
-  //             buffer.position(buffer.position() + 14);
-  //         }
+    // write the end of the field definitions marker
+    buffer.add(0x0D);
 
-  //         // write the end of the field definitions marker
-  //         buffer.put((byte) 0x0D);
-
-  //         buffer.position(0);
-
-  //         int r = buffer.remaining();
-  //         while ((r -= out.write(buffer)) > 0) {; // do nothing
-  //         }
-  //     } finally {
-  //         NIOUtilities.clean(buffer, false);
-  //     }
-  // }
+    await out.put(buffer);
+  }
 
   /// Get a simple representation of this header.
   ///
