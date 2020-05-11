@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:dart_hydrologis_utils/dart_hydrologis_utils.dart';
+import 'package:dart_jts/dart_jts.dart';
 import 'package:dart_shp/dart_shp.dart';
 import 'package:test/test.dart';
 
@@ -10,10 +11,14 @@ import 'testing_utilities.dart';
 void main() async {
   File statesDbf;
   File nullsDbf;
+  File pointTestDbf;
+  File pointTestShp;
   FieldFormatter victim;
   setUpAll(() async {
     statesDbf = File('./test/shapes/statepop.dbf');
     nullsDbf = File('./test/shapes/nulls.dbf');
+    pointTestDbf = File('./test/shapes/pointtest.dbf');
+    pointTestShp = File('./test/shapes/pointtest.shp');
     victim =
         FieldFormatter(Charset.defaultCharset(), TimeZones.getDefault(), false);
   });
@@ -254,6 +259,32 @@ void main() async {
       checkOutput(victim, 12345.678, 33, 31);
     });
   });
+
+  group('ShapefileFileTests - ', () {
+    test('testPoints', () async {
+      var reader = ShapefileFeatureReader(pointTestShp);
+      await reader.open();
+      var id2Coor = {
+        0: Coordinate(0.098, 0.600),
+        1: Coordinate(0.018, 0.872),
+        2: Coordinate(0.514, 0.352),
+        3: Coordinate(0.218, 0.476),
+        4: Coordinate(0.570, 0.744),
+        5: Coordinate(0.666, 0.644),
+      };
+      while (await reader.hasNext()) {
+        Feature feature = await reader.next();
+        var id = feature.attributes["ID"];
+        var coord = id2Coor[id];
+        if (coord != null) {
+          var fCoord = feature.geometry.getCoordinate();
+          assertEqualsD(fCoord.distance(coord), 0, 0.00000001);
+        }
+      }
+
+      reader?.close();
+    });
+  });
 }
 
 String checkOutput(var victim, num n, int sz, int places) {
@@ -281,8 +312,8 @@ String checkOutput(var victim, num n, int sz, int places) {
 }
 
 Future<DbaseFileReader> openDbf(File bdfFile) async {
-  var dbf =
-      DbaseFileReader(FileReaderRandom(bdfFile), Charset.defaultCharset(), null);
+  var dbf = DbaseFileReader(
+      FileReaderRandom(bdfFile), Charset.defaultCharset(), null);
   await dbf.open();
   return dbf;
 }

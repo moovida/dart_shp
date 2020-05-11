@@ -3,7 +3,19 @@ part of dart_shp;
 class Feature {
   Geometry geometry;
 
+  int fid;
+
   Map<String, dynamic> attributes = {};
+
+  @override
+  String toString() {
+    String attr = "";
+    attributes.forEach((k, v) {
+      attr += "\n\t--> $k: ${v.toString()}";
+    });
+
+    return "fid: $fid:\n\tgeom: ${geometry.toString()},\n\tattributes:$attr";
+  }
 }
 
 /// Thrown when an error relating to the shapefile occurs. */

@@ -12,28 +12,38 @@ part of dart_shp;
 class IndexFile {
   static final int RECS_IN_BUFFER = 2000;
 
-  AFileReader fileReader;
-  int channelOffset;
+  AFileReader afileReader;
+  int channelOffset = 0;
   int lastIndex = -1;
-  int recOffset;
-  int recLen;
+  int recOffset = 0;
+  int recLen = 0;
   ShapefileHeader header;
   List<int> content;
+  LByteBuffer buf;
 
   bool closed = false;
 
-  IndexFile(this.fileReader);
+  IndexFile(this.afileReader);
 
   /// Load the index file from the given reader.
   Future<void> open() async {
     try {
-      LOGGER.v("Loading all shx...");
-      await readHeader(fileReader);
-      await readRecords(fileReader);
-      fileReader.close();
+      // LOGGER.v("Loading all shx...");
+      // await readHeader(afileReader);
+      // await readRecords(afileReader);
+      // afileReader.close();
+
+      LOGGER.v("Reading from file...");
+      buf = LByteBuffer(8 * RECS_IN_BUFFER);
+      await afileReader.readIntoBuffer(buf);
+      buf.flip();
+      channelOffset = 0;
+
+      header = ShapefileHeader();
+      header.read(buf, true);
     } catch (e) {
-      if (fileReader != null) {
-        fileReader.close();
+      if (afileReader != null) {
+        afileReader.close();
       }
       rethrow;
     }
@@ -54,25 +64,33 @@ class IndexFile {
 
   Future<void> readHeader(AFileReader channel) async {
     header = ShapefileHeader();
-    var buffer = LByteBuffer(100);
-    while (buffer.remaining > 0) {
-      await channel.readIntoBuffer(buffer);
+    buf = LByteBuffer(100);
+    while (buf.remaining > 0) {
+      await channel.readIntoBuffer(buf);
     }
-    buffer.flip();
-    await header.read(buffer, true);
+    buf.flip();
+    await header.read(buf, true);
   }
 
   Future<void> readRecords(AFileReader channel) async {
     check();
     int remaining = (header.fileLength * 2) - 100;
-    Endian endian = Endian.big;
+    LByteBuffer buffer = LByteBuffer(remaining);
+
+    buffer.endian = Endian.big;
+    while (buffer.remaining > 0) {
+      await channel.readIntoBuffer(buffer);
+    }
+    buffer.flip();
+
     int records = remaining ~/ 4;
 
     content = [];
     for (var i = 0; i < records; i++) {
-      var intValue = await channel.getInt32(endian);
+      var intValue = await buffer.getInt32();
       content.add(intValue);
     }
+
     // var bytesList = await channel.get(remaining);
     // content = List(records);
     // IntBuffer ints = buffer.asIntBuffer();
@@ -83,27 +101,31 @@ class IndexFile {
     check();
     int pos = 100 + index * 8;
 
-    // if (pos - channelOffset < 0 ||
-    //     channelOffset <= pos || // TODO check
-    //     lastIndex == -1) {
-    //   LOGGER.v("Filling buffer...");
-    //   channelOffset = pos;
-    // }
+    if (pos - channelOffset < 0 ||
+        channelOffset + buf.limit <= pos ||
+        lastIndex == -1) {
+      LOGGER.v("Filling buffer...");
+      channelOffset = pos;
+      await (afileReader as FileReaderRandom).setPosition(pos);
+      buf.clear();
+      await afileReader.readIntoBuffer(buf);
+      buf.flip();
+    }
 
-    await (fileReader as FileReaderRandom).setPosition(pos);
-    // channel.position(pos - channelOffset);
-    recOffset = await fileReader.getInt32();
-    recLen = await fileReader.getInt32();
+    buf.position = pos - channelOffset;
+    recOffset = buf.getInt32();
+    recLen = buf.getInt32();
     lastIndex = index;
   }
 
   void close() {
     closed = true;
-    if (fileReader != null && fileReader.isOpen) {
-      fileReader.close();
+    if (afileReader != null && afileReader.isOpen) {
+      afileReader.close();
     }
     content = null;
-    fileReader = null;
+    afileReader = null;
+    buf = null;
   }
 
   void finalize() {
@@ -124,7 +146,7 @@ class IndexFile {
   Future<int> getOffset(int index) async {
     int ret = -1;
 
-    if (fileReader != null) {
+    if (afileReader != null) {
       if (lastIndex != index) {
         await readRecord(index);
       }
@@ -152,7 +174,7 @@ class IndexFile {
   int getContentLength(int index) {
     int ret = -1;
 
-    if (fileReader != null) {
+    if (afileReader != null) {
       if (lastIndex != index) {
         readRecord(index);
       }

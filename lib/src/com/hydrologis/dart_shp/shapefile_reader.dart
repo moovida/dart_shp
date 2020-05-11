@@ -5,8 +5,6 @@ part of dart_shp;
 class Record {
   int length;
 
-  int number = 0;
-
   int offset; // Relative to the whole file
 
   int start = 0; // Relative to the current loaded buffer
@@ -25,7 +23,7 @@ class Record {
 
   ShapeType type;
 
-  int end = 0; // Relative to the whole file
+  // int end = 0; // Relative to the whole file
 
   dynamic shape;
 
@@ -53,7 +51,7 @@ class Record {
   /// A summary of the record. */
   @override
   String toString() {
-    return "Record $number, length $length, bounds $minX,$minY $maxX,$maxY";
+    return "Length $length, bounds $minX,$minY $maxX,$maxY";
   }
 
   Envelope envelope() {
@@ -138,6 +136,7 @@ class ShapefileReader {
   ShapefileHeader header;
 
   AFileReader channel;
+  AFileReader shxChannel;
 
   LByteBuffer buffer;
 
@@ -146,6 +145,8 @@ class ShapefileReader {
   LByteBuffer headerTransfer;
 
   Record record;
+  int recordEnd = 0;
+  int recordNumber = 0;
 
   bool randomAccessEnabled;
 
@@ -172,14 +173,17 @@ class ShapefileReader {
   ///     and thus avoids opening the .shx file
   /// @ If problems arise.
   /// @throws ShapefileException If for some reason the file contains invalid records.
-  ShapefileReader(
-      this.channel, this.strict, this.geometryFactory, this.onlyRandomAccess);
+  ShapefileReader(this.channel, this.shxChannel,
+      {this.strict = false,
+      this.geometryFactory,
+      this.onlyRandomAccess = false});
 
-  void open() {
-    randomAccessEnabled = channel is FileReaderRandom;
+  Future<void> open() async {
+    randomAccessEnabled = shxChannel != null && shxChannel is FileReaderRandom;
     if (!onlyRandomAccess) {
       try {
-        shxReader = IndexFile(channel);
+        shxReader = IndexFile(shxChannel);
+        await shxReader.open();
       } catch (e) {
         LOGGER.w(
             "Could not open the .shx file, continuing "
@@ -188,7 +192,8 @@ class ShapefileReader {
         currentShape = UNKNOWN;
       }
     }
-    init(strict, geometryFactory);
+    geometryFactory ??= GeometryFactory.defaultPrecision();
+    await init(strict, geometryFactory);
   }
 
   /// Disables .shx file usage. By doing so you drop support for sparse shapefiles, the .shp will
@@ -258,7 +263,7 @@ class ShapefileReader {
     headerTransfer.endian = Endian.big;
 
     // make sure the record end is set now...
-    record.end = toFileOffset(buffer.position);
+    recordEnd = toFileOffset(buffer.position);
   }
 
   /// Get the header. Its parsed in the constructor.
@@ -316,7 +321,8 @@ class ShapefileReader {
     }
 
     // ensure the proper position, regardless of read or handler behavior
-    positionBufferForOffset(buffer, await getNextOffset());
+    var nextOffset = await getNextOffset();
+    positionBufferForOffset(buffer, nextOffset);
 
     // no more data left
     if (buffer.remaining < 8) {
@@ -332,7 +338,7 @@ class ShapefileReader {
       // record headers in big endian
       buffer.endian = Endian.big;
       int declaredRecNo = buffer.getInt32();
-      hasNext = declaredRecNo == record.number + 1;
+      hasNext = declaredRecNo == recordNumber + 1;
     }
 
     // reset things to as they were
@@ -345,7 +351,7 @@ class ShapefileReader {
     if (currentShape >= 0) {
       return await shxReader.getOffsetInBytes(currentShape);
     } else {
-      return record.end;
+      return recordEnd;
     }
   }
 
@@ -428,7 +434,7 @@ class ShapefileReader {
     buffer.endian = Endian.big;
 
     // read shape record header
-    int recordNumber = buffer.getInt32();
+    int recordNumberTmp = buffer.getInt32();
     // silly ESRI say contentLength is in 2-byte words
     // and ByteByffer uses bytes.
     // track the record location
@@ -486,13 +492,13 @@ class ShapefileReader {
     }
     buffer.reset();
 
-    record.offset = record.end;
+    record.offset = recordEnd;
     // update all the record info.
     record.length = recordLength;
     record.type = recordType;
-    record.number = recordNumber;
+    recordNumber = recordNumberTmp;
     // remember, we read one int already...
-    record.end = toFileOffset(buffer.position) + recordLength - 4;
+    recordEnd = toFileOffset(buffer.position) + recordLength - 4;
     // mark this position for the reader
     record.start = buffer.position;
     // clear any cached shape
@@ -514,13 +520,13 @@ class ShapefileReader {
     if (randomAccessEnabled) {
       positionBufferForOffset(buffer, offset);
 
-      int oldRecordOffset = record.end;
-      record.end = offset;
+      int oldRecordOffset = recordEnd;
+      recordEnd = offset;
       try {
         await hasNextCheck(
             false); // don't check for next logical record equality
       } catch (ioe) {
-        record.end = oldRecordOffset;
+        recordEnd = oldRecordOffset;
         rethrow;
       }
     } else {
