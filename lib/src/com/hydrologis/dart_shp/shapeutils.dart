@@ -1,57 +1,107 @@
 part of dart_shp;
 
+/// Thrown when an error relating to the shapefile occurs. */
+class ShapefileException implements Exception {
+  String msg;
+  Exception cause;
+
+  ShapefileException(this.msg);
+
+  ShapefileException.withCause(this.msg, this.cause);
+
+  @override
+  String toString() => 'ShapefileException: ' + msg;
+}
+
+/// A ShapeHandler defines what is needed to construct and persist geometries based upon the
+/// shapefile specification.
+///
+/// @author aaime
+/// @author Ian Schneider
+abstract class ShapeHandler {
+  /// Get the ShapeType of this handler.
+  ///
+  /// @return The ShapeType.
+  ShapeType getShapeType();
+
+  /// Read a geometry from the ByteBuffer. The buffer's position, byteOrder, and limit are set to
+  /// that which is needed. The record has been read as well as the shape type integer. The handler
+  /// need not worry about reading unused information as the ShapefileReader will correctly adjust
+  /// the buffer position after this call.
+  ///
+  /// @param buffer The ByteBuffer to read from.
+  /// @return A geometry object.
+  Object read(ByteBuffer buffer, ShapeType type, bool flatGeometry);
+
+  /// Write the geometry into the ByteBuffer. The position, byteOrder, and limit are all set. The
+  /// handler is not responsible for writing the record or shape type integer.
+  ///
+  /// @param buffer The ByteBuffer to write to.
+  /// @param geometry The geometry to write.
+  void write(ByteBuffer buffer, Object geometry);
+
+  /// Get the length of the given geometry Object in <b>bytes</b> not 16-bit words. This is easier
+  /// to keep track of, since the ByteBuffer deals with bytes. <b>Do not include the 8 bytes of
+  /// record.</b>
+  ///
+  /// @param geometry The geometry to analyze.
+  /// @return The number of <b>bytes</b> the shape will take up.
+  int getLength(Object geometry);
+}
+
 /// Not much but a type safe enumeration of file types as ints and names. The descriptions can easily
 /// be tied to a ResourceBundle if someone wants to do that.
 ///
 /// @author Ian Schneider
 class ShapeType {
-  /// The integer id of this ShapeType. 
+  /// The integer id of this ShapeType.
   final int id;
+
   /// The human-readable name for this ShapeType.<br>
   /// Could easily use ResourceBundle for internationialization.
   final String name;
   const ShapeType._(this.id, this.name);
 
-  /// Represents a Null shape (id = 0). 
+  /// Represents a Null shape (id = 0).
   static const NULL = ShapeType._(0, 'Null');
 
-  /// Represents a Point shape (id = 1). 
+  /// Represents a Point shape (id = 1).
   static const POINT = ShapeType._(1, 'Point');
 
-  /// Represents a PointZ shape (id = 11). 
+  /// Represents a PointZ shape (id = 11).
   static const POINTZ = ShapeType._(11, 'PointZ');
 
-  /// Represents a PointM shape (id = 21). 
+  /// Represents a PointM shape (id = 21).
   static const POINTM = ShapeType._(21, 'PointM');
 
-  /// Represents an Arc shape (id = 3). 
+  /// Represents an Arc shape (id = 3).
   static const ARC = ShapeType._(3, 'Arc');
 
-  /// Represents an ArcZ shape (id = 13). 
+  /// Represents an ArcZ shape (id = 13).
   static const ARCZ = ShapeType._(13, 'ArcZ');
 
-  /// Represents an ArcM shape (id = 23). 
+  /// Represents an ArcM shape (id = 23).
   static const ARCM = ShapeType._(23, 'ArcM');
 
-  /// Represents a Polygon shape (id = 5). 
+  /// Represents a Polygon shape (id = 5).
   static const POLYGON = ShapeType._(5, 'Polygon');
 
-  /// Represents a PolygonZ shape (id = 15). 
+  /// Represents a PolygonZ shape (id = 15).
   static const POLYGONZ = ShapeType._(15, 'PolygonZ');
 
-  /// Represents a PolygonM shape (id = 25). 
+  /// Represents a PolygonM shape (id = 25).
   static const POLYGONM = ShapeType._(25, 'PolygonM');
 
-  /// Represents a MultiPoint shape (id = 8). 
+  /// Represents a MultiPoint shape (id = 8).
   static const MULTIPOINT = ShapeType._(8, 'MultiPoint');
 
-  /// Represents a MultiPointZ shape (id = 18). 
+  /// Represents a MultiPointZ shape (id = 18).
   static const MULTIPOINTZ = ShapeType._(18, 'MultiPointZ');
 
-  /// Represents a MultiPointM shape (id = 28). 
+  /// Represents a MultiPointM shape (id = 28).
   static const MULTIPOINTM = ShapeType._(28, 'MultiPointM');
 
-  /// Represents an Undefined shape (id = -1). 
+  /// Represents an Undefined shape (id = -1).
   static const UNDEFINED = ShapeType._(-1, 'Undefined');
 
   /// Get the name of this ShapeType.

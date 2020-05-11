@@ -86,7 +86,7 @@ class DbaseFileReader {
 
   final int MILLISECS_PER_DAY = 24 * 60 * 60 * 1000;
 
-  FileReader fileReader;
+  AFileReader fileReader;
   Charset stringCharset;
   TimeZones timeZone;
 

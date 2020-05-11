@@ -17,6 +17,7 @@ part 'src/com/hydrologis/dart_shp/dbase_reader.dart';
 part 'src/com/hydrologis/dart_shp/dbase_header.dart';
 part 'src/com/hydrologis/dart_shp/dbase_writer.dart';
 part 'src/com/hydrologis/dart_shp/utils.dart';
-part 'src/com/hydrologis/dart_shp/shapetype.dart';
+part 'src/com/hydrologis/dart_shp/shapeutils.dart';
 part 'src/com/hydrologis/dart_shp/shapefile_header.dart';
+part 'src/com/hydrologis/dart_shp/index_reader.dart';
 

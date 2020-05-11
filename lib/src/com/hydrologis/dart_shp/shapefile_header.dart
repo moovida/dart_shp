@@ -47,7 +47,7 @@ class ShapefileHeader {
     }
   }
 
-  Future<void> read(FileReader fileReader, bool strict) async {
+  Future<void> read(FileReaderRandom fileReader, bool strict) async {
     Endian endian = Endian.big;
     // file.order(ByteOrder.BIG_ENDIAN);
     fileCode = await fileReader.getInt32(endian);

@@ -391,7 +391,7 @@ class DbaseFileHeader {
   /// @param channel A readable byte channel. If you have an InputStream you need to use, you can
   ///     call java.nio.Channels.getChannel(InputStream in).
   /// @ If errors occur while reading.
-  Future<void> readHeader(FileReader channel) async {
+  Future<void> readHeader(AFileReader channel) async {
     await readHeaderWithCharset(channel, Charset.defaultCharset());
   }
 
@@ -401,7 +401,7 @@ class DbaseFileHeader {
   ///     call java.nio.Channels.getChannel(InputStream in).
   /// @ If errors occur while reading.
   Future<void> readHeaderWithCharset(
-      FileReader channel, Charset charset) async {
+      AFileReader channel, Charset charset) async {
     Endian endian = Endian.little;
 
     // type of file.
@@ -442,8 +442,7 @@ class DbaseFileHeader {
 
     // calculate the number of Fields in the header
     fieldCnt =
-        ((headerLength - FILE_DESCRIPTOR_SIZE - 1) / FILE_DESCRIPTOR_SIZE)
-            .toInt();
+        (headerLength - FILE_DESCRIPTOR_SIZE - 1) ~/ FILE_DESCRIPTOR_SIZE;
 
     // read all of the header records
     List<DbaseField> lfields = [];

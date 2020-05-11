@@ -109,7 +109,7 @@ void main() async {
         }
         dbf.close();
 
-        DbaseFileReader r = DbaseFileReader(FileReader(temp));
+        DbaseFileReader r = DbaseFileReader(FileReaderRandom(temp));
         await r.open();
 
         int cnt = 0;
@@ -178,7 +178,7 @@ void main() async {
         writer.close();
       }
 
-      var fr = FileReader(temp);
+      var fr = FileReaderRandom(temp);
 
       DbaseFileReader reader = DbaseFileReader(fr, cs, tz);
       try {
@@ -273,7 +273,7 @@ String checkOutput(var victim, num n, int sz, int places) {
 
 Future<DbaseFileReader> openDbf(File bdfFile) async {
   var dbf =
-      DbaseFileReader(FileReader(bdfFile), Charset.defaultCharset(), null);
+      DbaseFileReader(FileReaderRandom(bdfFile), Charset.defaultCharset(), null);
   await dbf.open();
   return dbf;
 }
