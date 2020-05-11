@@ -20,14 +20,14 @@ const String WKT_MULTIPOLYGON =
 const String WKT_GC =
     "GEOMETRYCOLLECTION (POLYGON ((100 200, 200 200, 200 100, 100 100, 100 200)), LINESTRING (150 250, 250 250))";
 
-assertEquals(actual, matcher) {
+assertEquals(actual, matcher, [String msg]) {
   if (actual is double && matcher is double) {
     if (actual.isNaN && matcher.isNaN) return;
   }
   if (actual is Coordinate && matcher is Coordinate) {
     if (actual.equals(matcher)) return;
   }
-  expect(actual, matcher);
+  expect(actual, matcher, reason: msg);
 }
 
 assertEqualsD(double n1, double n2, double tolerance, [String msg]) {

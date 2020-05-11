@@ -11,14 +11,14 @@ import 'testing_utilities.dart';
 void main() async {
   File statesDbf;
   File nullsDbf;
-  File pointTestDbf;
   File pointTestShp;
+  File danishShp;
   FieldFormatter victim;
   setUpAll(() async {
     statesDbf = File('./test/shapes/statepop.dbf');
     nullsDbf = File('./test/shapes/nulls.dbf');
-    pointTestDbf = File('./test/shapes/pointtest.dbf');
     pointTestShp = File('./test/shapes/pointtest.shp');
+    danishShp = File('./test/shapes/danish_point.shp');
     victim =
         FieldFormatter(Charset.defaultCharset(), TimeZones.getDefault(), false);
   });
@@ -279,6 +279,33 @@ void main() async {
         if (coord != null) {
           var fCoord = feature.geometry.getCoordinate();
           assertEqualsD(fCoord.distance(coord), 0, 0.00000001);
+        }
+      }
+
+      reader?.close();
+    });
+    test('testDanishPoints', () async {
+      var reader = ShapefileFeatureReader(danishShp);
+      await reader.open();
+      var id2Coor = {
+        1: [Coordinate(714477, 6171916), "Charløtte"],
+        2: [Coordinate(715676, 6172305), "Noah"],
+        3: [Coordinate(714579, 6171156), "Laura"],
+        4: [Coordinate(715085, 6169602), "Lukas"],
+      };
+      while (await reader.hasNext()) {
+        Feature feature = await reader.next();
+        var id = feature.attributes["ID"];
+        var list = id2Coor[id];
+        if (list != null) {
+          var fCoord = feature.geometry.getCoordinate();
+          var coord = list[0];
+          assertEqualsD(
+              fCoord.distance(coord), 0, 1, "fCoord: $fCoord -> coord: $coord");
+
+          var fname = feature.attributes["TEKST1"];
+          var name = list[1];
+          assertEquals(fname, name, "$fname vs $name");
         }
       }
 
