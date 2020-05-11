@@ -86,19 +86,27 @@ class DbaseFileReader {
 
   final int MILLISECS_PER_DAY = 24 * 60 * 60 * 1000;
 
-  AFileReader fileReader;
+  LByteBuffer buffer;
+  AFileReader afileReader;
   Charset stringCharset;
   TimeZones timeZone;
 
-  DbaseFileReader(this.fileReader, [this.stringCharset, this.timeZone]);
+  DbaseFileReader(this.afileReader, [this.stringCharset, this.timeZone]);
 
   Future<void> open() async {
     stringCharset = stringCharset ?? Charset.defaultCharset();
     // TimeZone calTimeZone = timeZone == null ? TimeZone.UTC : timeZone;
 
     header = DbaseFileHeader();
-    await header.readHeaderWithCharset(fileReader, stringCharset);
+    await header.readHeaderWithCharset(afileReader, stringCharset);
+
+    buffer = LByteBuffer(header.getRecordLength());
+    await fill(buffer, afileReader);
+    buffer.flip();
+
     currentOffset = header.getHeaderLength();
+
+    buffer.endian = Endian.little;
 
     // Set up some buffers and lookups for efficiency
     fieldTypes = List(header.getNumFields());
@@ -122,6 +130,30 @@ class DbaseFileReader {
     row = Row(fieldOffsets, header, readObject);
   }
 
+  Future<int> fill(final LByteBuffer buffer, final AFileReader channel) async {
+    int r = buffer.remaining;
+    // channel reads return -1 when EOF or other error
+    // because they a non-blocking reads, 0 is a valid return value!!
+    while (buffer.remaining > 0 && r != -1) {
+      r = await channel.readIntoBuffer(buffer);
+    }
+    if (r == -1) {
+      buffer.limit = buffer.position;
+    }
+    return r;
+  }
+
+  Future<void> bufferCheck() async {
+    // remaining is less than record length
+    // compact the remaining data and read again
+    if (buffer.remaining < header.getRecordLength()) {
+      currentOffset += buffer.position;
+      buffer.compact();
+      await fill(buffer, afileReader);
+      buffer.position = 0;
+    }
+  }
+
   /// Get the header from this file. The header is read upon instantiation.
   ///
   /// @return The header associated with this file or null if an error occurred.
@@ -133,11 +165,12 @@ class DbaseFileReader {
   ///
   /// @ If an error occurs.
   void close() {
-    if (fileReader != null && fileReader.isOpen) {
-      fileReader.close();
+    if (afileReader != null && afileReader.isOpen) {
+      afileReader.close();
     }
 
-    fileReader = null;
+    afileReader = null;
+    buffer = null;
     bytes = null;
     header = null;
     row = null;
@@ -166,32 +199,31 @@ class DbaseFileReader {
   /// Skip the next record.
   ///
   /// @ If an error occurs.
-  //  void skip()  {
-  //     bool foundRecord = false;
-  //     while (!foundRecord) {
+  void skip() {
+    bool foundRecord = false;
+    while (!foundRecord) {
+      // bufferCheck();
 
-  //         // bufferCheck();
+      // read the deleted flag
+      final String tempDeleted = String.fromCharCode(buffer.getByte());
 
-  //         // read the deleted flag
-  //         final String tempDeleted = (char) buffer.get();
+      // skip the next bytes
+      buffer.position = buffer.position + header.getRecordLength() - 1; // the
+      // 1 is
+      // for
+      // the
+      // deleted
+      // flag
+      // just
+      // read.
 
-  //         // skip the next bytes
-  //         buffer.position(buffer.position() + header.getRecordLength() - 1); // the
-  //         // 1 is
-  //         // for
-  //         // the
-  //         // deleted
-  //         // flag
-  //         // just
-  //         // read.
-
-  //         // add the row if it is not deleted.
-  //         if (tempDeleted != '*') {
-  //             foundRecord = true;
-  //         }
-  //     }
-  //     cnt++;
-  // }
+      // add the row if it is not deleted.
+      if (tempDeleted != '*') {
+        foundRecord = true;
+      }
+    }
+    cnt++;
+  }
 
   /// Copy the next record into the array starting at offset.
   ///
@@ -232,32 +264,31 @@ class DbaseFileReader {
     return readObject(fieldOffsets[fieldNum], fieldNum);
   }
 
-  // /** Transfer, by bytes, the next record to the writer. */
-  //  void transferTo(final DbaseFileWriter writer)  {
-  //     bufferCheck();
-  //     buffer.limit(buffer.position() + header.getRecordLength());
-  //     writer.channel.write(buffer);
-  //     buffer.limit(buffer.capacity());
+  /// Transfer, by bytes, the next record to the writer. */
+  void transferTo(final DbaseFileWriter writer) {
+    bufferCheck();
+    buffer.limit = buffer.position + header.getRecordLength();
+    writer.channel.putBuffer(buffer);
+    buffer.limit = buffer.capacity;
 
-  //     cnt++;
-  // }
+    cnt++;
+  }
 
   /// Reads the next record into memory. You need to use this directly when reading only a subset
   /// of the fields using {@link #readField(int)}.
   Future read() async {
     var foundRecord = false;
     while (!foundRecord) {
-      // bufferCheck();
+      await bufferCheck();
 
       // read the deleted flag
-      final deleted = String.fromCharCode(
-          await fileReader.getByte()); //   (    char) buffer.get();
+      final deleted = buffer.getByteChar(); //   (    char) buffer.get();
       row.deleted = deleted == '*';
 
-      bytes = await fileReader.get(header.getRecordLength() - 1);
-      // buffer.limit(buffer.position() + header.getRecordLength() - 1);
-      // buffer.get(bytes); // SK: There is a side-effect here!!!
-      // buffer.limit(buffer.capacity());
+      // bytes = await fileReader.get(header.getRecordLength() - 1);
+      buffer.limit = buffer.position + header.getRecordLength() - 1;
+      bytes = await buffer.get(header.getRecordLength() - 1); // SK: There is a side-effect here!!!
+      buffer.limit = buffer.capacity;
 
       foundRecord = true;
     }

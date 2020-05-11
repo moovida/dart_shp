@@ -30,6 +30,15 @@ void main() async {
 
       dbf?.close();
     });
+    test('testNumberOfRowsLoaded', () async {
+      var dbf = await openDbf(statesDbf);
+
+      var header = dbf.getHeader();
+      var numRows = header.getNumRecords();
+      expect(numRows, 49);
+
+      dbf?.close();
+    });
     test('testDataLoaded', () async {
       var dbf = await openDbf(statesDbf);
 

@@ -1,6 +1,5 @@
 library dart_shp;
 
-import 'dart:html';
 import 'dart:typed_data';
 import 'dart:io';
 import 'package:dart_hydrologis_utils/dart_hydrologis_utils.dart';
@@ -19,7 +18,8 @@ part 'src/com/hydrologis/dart_shp/dbase_header.dart';
 part 'src/com/hydrologis/dart_shp/dbase_writer.dart';
 part 'src/com/hydrologis/dart_shp/utils.dart';
 part 'src/com/hydrologis/dart_shp/shapeutils.dart';
-part 'src/com/hydrologis/dart_shp/shapefile_header.dart';
 part 'src/com/hydrologis/dart_shp/shapefile_reader.dart';
+part 'src/com/hydrologis/dart_shp/shapefile_header.dart';
+part 'src/com/hydrologis/dart_shp/shapefilefeature_reader.dart';
 part 'src/com/hydrologis/dart_shp/index_reader.dart';
-
+part 'src/com/hydrologis/dart_shp/point_handler.dart';

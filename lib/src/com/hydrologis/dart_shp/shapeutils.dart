@@ -1,5 +1,11 @@
 part of dart_shp;
 
+class Feature {
+  Geometry geometry;
+
+  Map<String, dynamic> attributes = {};
+}
+
 /// Thrown when an error relating to the shapefile occurs. */
 class ShapefileException implements Exception {
   String msg;
@@ -241,22 +247,25 @@ class ShapeType {
   /// @return The correct handler for this ShapeType. Returns a new one.
   ShapeHandler getShapeHandler(GeometryFactory gf) {
     switch (id) {
-      // case 1:
-      // case 11:
-      // case 21:
-      //   return new PointHandler(this, gf);
-      // case 3:
-      // case 13:
-      // case 23:
-      //   return new MultiLineHandler(this, gf);
-      // case 5:
-      // case 15:
-      // case 25:
-      //   return new PolygonHandler(this, gf);
-      // case 8:
-      // case 18:
-      // case 28:
-      //   return new MultiPointHandler(this, gf);
+      case 1:
+      case 11:
+      case 21:
+        return PointHandler.withType(this, gf);
+      case 3:
+      case 13:
+      case 23:
+        throw ArgumentError("MultiLine handling not implemented yet.");
+      // return new MultiLineHandler(this, gf);
+      case 5:
+      case 15:
+      case 25:
+        throw ArgumentError("Polygon handling not implemented yet.");
+      // return new PolygonHandler(this, gf);
+      case 8:
+      case 18:
+      case 28:
+        throw ArgumentError("MultiPoint handling not implemented yet.");
+      // return new MultiPointHandler(this, gf);
       default:
         return null;
     }
