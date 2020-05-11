@@ -54,7 +54,12 @@ class IndexFile {
 
   Future<void> readHeader(AFileReader channel) async {
     header = ShapefileHeader();
-    await header.read(channel, true);
+    var buffer = LByteBuffer(100);
+    while (buffer.remaining > 0) {
+      await channel.readIntoBuffer(buffer);
+    }
+    buffer.flip();
+    await header.read(buffer, true);
   }
 
   Future<void> readRecords(AFileReader channel) async {

@@ -47,37 +47,36 @@ class ShapefileHeader {
     }
   }
 
-  Future<void> read(FileReaderRandom fileReader, bool strict) async {
-    Endian endian = Endian.big;
-    // file.order(ByteOrder.BIG_ENDIAN);
-    fileCode = await fileReader.getInt32(endian);
+  void read(LByteBuffer buffer, bool strict) {
+    buffer.endian = Endian.big;
+    fileCode = buffer.getInt32();
 
     checkMagic(strict);
 
     // skip 5 ints...
-    await fileReader.skip(20);
+    buffer.skip(20);
 
-    fileLength = await fileReader.getInt32(endian);
+    fileLength = buffer.getInt32();
 
-    endian = Endian.big;
-    // file.order(ByteOrder.LITTLE_ENDIAN);
-    version = await fileReader.getInt32(endian);
+    buffer.endian = Endian.little;
+    version = buffer.getInt32();
     checkVersion(strict);
-    shapeType = ShapeType.forID(await fileReader.getInt32(endian));
+    shapeType = ShapeType.forID(buffer.getInt32());
 
-    minX = await fileReader.getDouble64(endian);
-    minY = await fileReader.getDouble64(endian);
-    maxX = await fileReader.getDouble64(endian);
-    maxY = await fileReader.getDouble64(endian);
+    minX = buffer.getDouble64();
+    minY = buffer.getDouble64();
+    maxX = buffer.getDouble64();
+    maxY = buffer.getDouble64();
 
     // skip remaining unused bytes
     // file.order(ByteOrder.BIG_ENDIAN); // well they may not be unused
     // forever...
-    await fileReader.skip(32);
+    buffer.endian = Endian.big;
+    buffer.skip(32);
   }
 
-  Future<void> write(FileWriter fileWriter, ShapeType type, int numGeoms, int length,
-      double minX, double minY, double maxX, double maxY) async {
+  Future<void> write(FileWriter fileWriter, ShapeType type, int numGeoms,
+      int length, double minX, double minY, double maxX, double maxY) async {
     // file.order(ByteOrder.BIG_ENDIAN);
     Endian endian = Endian.big;
 
@@ -111,8 +110,7 @@ class ShapefileHeader {
 
   @override
   String toString() {
-    String res =
-        """ShapeFileHeader[ 
+    String res = """ShapeFileHeader[ 
               size $fileLength 
               version $version 
               shapeType $shapeType 

@@ -13,6 +13,60 @@ class ShapefileException implements Exception {
   String toString() => 'ShapefileException: ' + msg;
 }
 
+class Shapeutils {
+  /// Creates a {@link CoordinateSequence} using the provided factory confirming the provided size
+  /// and dimension are respected.
+  ///
+  /// <p>If the requested dimension is larger than the CoordinateSequence implementation can
+  /// provide, then a sequence of maximum possible dimension should be created. An error should not
+  /// be thrown.
+  ///
+  /// <p>This method is functionally identical to calling csFactory.create(size,dim) - it contains
+  /// additional logic to work around a limitation on the commonly used
+  /// CoordinateArraySequenceFactory.
+  ///
+  /// @param size the number of coordinates in the sequence
+  /// @param dimension the dimension of the coordinates in the sequence
+  static CoordinateSequence createCS(
+      CoordinateSequenceFactory csFactory, int size, int dimension) {
+    // the coordinates don't have measures
+    return createCSMeas(csFactory, size, dimension, 0);
+  }
+
+  /// Creates a {@link CoordinateSequence} using the provided factory confirming the provided size
+  /// and dimension are respected.
+  ///
+  /// <p>If the requested dimension is larger than the CoordinateSequence implementation can
+  /// provide, then a sequence of maximum possible dimension should be created. An error should not
+  /// be thrown.
+  ///
+  /// <p>This method is functionally identical to calling csFactory.create(size,dim) - it contains
+  /// additional logic to work around a limitation on the commonly used
+  /// CoordinateArraySequenceFactory.
+  ///
+  /// @param size the number of coordinates in the sequence
+  /// @param dimension the dimension of the coordinates in the sequence
+  /// @param measures the measures of the coordinates in the sequence
+  static CoordinateSequence createCSMeas(CoordinateSequenceFactory csFactory,
+      int size, int dimension, int measures) {
+    CoordinateSequence cs;
+    if (csFactory is CoordinateArraySequenceFactory && dimension == 1) {
+      // work around JTS 1.14 CoordinateArraySequenceFactory regression ignoring provided
+      // dimension
+      cs = CoordinateArraySequence.fromSizeDimensionMeasures(
+          size, dimension, measures);
+    } else {
+      cs = csFactory.createSizeDimMeas(size, dimension, measures);
+    }
+    if (cs.getDimension() != dimension) {
+      // illegal state error, try and fix
+      throw StateError(
+          "Unable to use $csFactory to produce CoordinateSequence with dimension $dimension");
+    }
+    return cs;
+  }
+}
+
 /// A ShapeHandler defines what is needed to construct and persist geometries based upon the
 /// shapefile specification.
 ///
@@ -31,14 +85,14 @@ abstract class ShapeHandler {
   ///
   /// @param buffer The ByteBuffer to read from.
   /// @return A geometry object.
-  Object read(ByteBuffer buffer, ShapeType type, bool flatGeometry);
+  dynamic read(LByteBuffer buffer, ShapeType type, bool flatGeometry);
 
   /// Write the geometry into the ByteBuffer. The position, byteOrder, and limit are all set. The
   /// handler is not responsible for writing the record or shape type integer.
   ///
   /// @param buffer The ByteBuffer to write to.
   /// @param geometry The geometry to write.
-  void write(ByteBuffer buffer, Object geometry);
+  void write(LByteBuffer buffer, Object geometry);
 
   /// Get the length of the given geometry Object in <b>bytes</b> not 16-bit words. This is easier
   /// to keep track of, since the ByteBuffer deals with bytes. <b>Do not include the 8 bytes of
@@ -46,7 +100,7 @@ abstract class ShapeHandler {
   ///
   /// @param geometry The geometry to analyze.
   /// @return The number of <b>bytes</b> the shape will take up.
-  int getLength(Object geometry);
+  int getLength(dynamic geometry);
 }
 
 /// Not much but a type safe enumeration of file types as ints and names. The descriptions can easily
@@ -180,31 +234,31 @@ class ShapeType {
     }
   }
 
-  // /// Each ShapeType corresponds to a handler. In the future this should probably go else where to
-  // /// allow different handlers, or something...
-  // ///
-  // /// @throws ShapefileException If the ShapeType is bogus.
-  // /// @return The correct handler for this ShapeType. Returns a new one.
-  // ShapeHandler getShapeHandler(GeometryFactory gf) {
-  //   switch (id) {
-  //     case 1:
-  //     case 11:
-  //     case 21:
-  //       return new PointHandler(this, gf);
-  //     case 3:
-  //     case 13:
-  //     case 23:
-  //       return new MultiLineHandler(this, gf);
-  //     case 5:
-  //     case 15:
-  //     case 25:
-  //       return new PolygonHandler(this, gf);
-  //     case 8:
-  //     case 18:
-  //     case 28:
-  //       return new MultiPointHandler(this, gf);
-  //     default:
-  //       return null;
-  //   }
-  // }
+  /// Each ShapeType corresponds to a handler. In the future this should probably go else where to
+  /// allow different handlers, or something...
+  ///
+  /// @throws ShapefileException If the ShapeType is bogus.
+  /// @return The correct handler for this ShapeType. Returns a new one.
+  ShapeHandler getShapeHandler(GeometryFactory gf) {
+    switch (id) {
+      // case 1:
+      // case 11:
+      // case 21:
+      //   return new PointHandler(this, gf);
+      // case 3:
+      // case 13:
+      // case 23:
+      //   return new MultiLineHandler(this, gf);
+      // case 5:
+      // case 15:
+      // case 25:
+      //   return new PolygonHandler(this, gf);
+      // case 8:
+      // case 18:
+      // case 28:
+      //   return new MultiPointHandler(this, gf);
+      default:
+        return null;
+    }
+  }
 }
