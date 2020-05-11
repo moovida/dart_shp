@@ -13,12 +13,14 @@ void main() async {
   File nullsDbf;
   File pointTestShp;
   File danishShp;
+  File rusShp;
   FieldFormatter victim;
   setUpAll(() async {
     statesDbf = File('./test/shapes/statepop.dbf');
     nullsDbf = File('./test/shapes/nulls.dbf');
     pointTestShp = File('./test/shapes/pointtest.shp');
     danishShp = File('./test/shapes/danish_point.shp');
+    rusShp = File('./test/shapes/rus-windows-1251.shp');
     victim =
         FieldFormatter(Charset.defaultCharset(), TimeZones.getDefault(), false);
   });
@@ -306,6 +308,26 @@ void main() async {
           var fname = feature.attributes["TEKST1"];
           var name = list[1];
           assertEquals(fname, name, "$fname vs $name");
+        }
+      }
+
+      reader?.close();
+    });
+    test('testRussianPoints', () async {
+      var reader = ShapefileFeatureReader(rusShp);
+      await reader.open();
+      var id2Coor = {
+        "Êèðèëëèöà": Coordinate(-0.814, 0.610),
+        "Ñìåøàíûé 12345": Coordinate(0.367, 0.620),
+      };
+      while (await reader.hasNext()) {
+        Feature feature = await reader.next();
+        var text = feature.attributes["TEXT"];
+        var coord = id2Coor[text];
+        if (coord != null) {
+          var fCoord = feature.geometry.getCoordinate();
+          assertEqualsD(
+              fCoord.distance(coord), 0, 0.001, "fCoord: $fCoord -> coord: $coord");
         }
       }
 
