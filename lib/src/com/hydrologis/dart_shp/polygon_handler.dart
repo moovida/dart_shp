@@ -314,7 +314,7 @@ class PolygonHandler extends ShapeHandler {
 
   List<List<LinearRing>> assignHolesToShells(
       final List<LinearRing> shells, final List<LinearRing> holes) {
-    List<List<LinearRing>> holesForShells = List(shells.length);
+    List<List<LinearRing>> holesForShells = [];
     for (int i = 0; i < shells.length; i++) {
       holesForShells.add([]);
     }

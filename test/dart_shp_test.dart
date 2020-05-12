@@ -373,6 +373,64 @@ void main() async {
 
       reader?.close();
     });
+    test('testCountries', () async {
+      var countries = File('./test/shapes/ne/countries.shp');
+      var reader = ShapefileFeatureReader(countries);
+      await reader.open();
+      List<Feature> features = [];
+      while (await reader.hasNext()) {
+        Feature feature = await reader.next();
+        features.add(feature);
+      }
+
+      assertEquals(features.length, 1);
+
+      var f = features[0];
+      var geomNum = f.geometry.getNumGeometries();
+      assertEquals(geomNum, 29);
+
+      assertEquals(f.attributes["SOVEREIGNT"], "Italy");
+      assertEquals(f.attributes["ADMIN"], "Italy");
+      assertEquals(f.attributes["POP_EST"], 58126212);
+
+      reader?.close();
+    });
+    test('testProvinces', () async {
+      var file = File('./test/shapes/ne/provinces.shp');
+      var reader = ShapefileFeatureReader(file);
+      await reader.open();
+      while (await reader.hasNext()) {
+        Feature feature = await reader.next();
+        if (feature.attributes["adm1_code"] == "ITA-5459") {
+          assertEquals(feature.attributes["name"], "Bozen");
+          assertEquals(feature.attributes["name_local"], "");
+
+          assertEqualsD(feature.geometry.getArea(), 0.869, 0.001);
+          break;
+        }
+      }
+
+      reader?.close();
+    });
+    test('testPois', () async {
+      var file = File('./test/shapes/ne/poi.shp');
+      var reader = ShapefileFeatureReader(file);
+      await reader.open();
+      var list = [];
+      while (await reader.hasNext()) {
+        Feature feature = await reader.next();
+        if (feature.attributes["NAME"] == "Ancona") {
+          assertEquals(feature.attributes["ADM1NAME"], "Marche");
+          assertEquals(feature.attributes["RANK_MIN"], 8);
+          assertEquals(feature.attributes["POP_MAX"], 100507);
+        }
+        list.add(feature);
+      }
+
+      assertEquals(list.length, 58);
+
+      reader?.close();
+    });
   });
 }
 
