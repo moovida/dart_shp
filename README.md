@@ -1,4 +1,6 @@
 # dart_shp
 
-This is a early stage work in progress.
+A port to dart of some portions of the http://www.geotools.org shapefile plugin.
+
+At the moment dbf read/write and shapefile reading works.
 

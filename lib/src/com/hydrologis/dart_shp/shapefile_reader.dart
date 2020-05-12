@@ -157,7 +157,7 @@ class ShapefileReader {
   IndexFile shxReader;
   GeometryFactory geometryFactory;
 
-  bool flatGeometry;
+  bool flatGeometry = false;
 
   bool onlyRandomAccess;
 

@@ -431,6 +431,27 @@ void main() async {
 
       reader?.close();
     });
+    test('testRoads', () async {
+      var file = File('./test/shapes/ne/roads.shp');
+      var reader = ShapefileFeatureReader(file);
+      await reader.open();
+      var list = [];
+      var lSum = 0.0;
+      var kmSum = 0.0;
+      while (await reader.hasNext()) {
+        Feature feature = await reader.next();
+        lSum += feature.geometry.getLength();
+        kmSum += feature.attributes["length_km"];
+        list.add(feature);
+      }
+
+      assertEqualsD(lSum, 289.7497347181333, 0.001);
+      assertEquals(kmSum, 29167);
+
+      assertEquals(list.length, 564);
+
+      reader?.close();
+    });
   });
 }
 

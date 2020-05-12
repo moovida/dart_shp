@@ -1,3 +1,6 @@
-## 1.0.0
+## 0.1.0
 
-- Initial version, created by Stagehand
+First version:
+
+- read point, lines, polygon shapefiles
+- read and write dbf files

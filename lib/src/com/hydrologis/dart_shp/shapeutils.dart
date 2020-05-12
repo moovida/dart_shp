@@ -404,8 +404,7 @@ class ShapeType {
       case 3:
       case 13:
       case 23:
-        throw ArgumentError("MultiLine handling not implemented yet.");
-      // return new MultiLineHandler(this, gf);
+        return MultiLineHandler.withType(this, gf);
       case 5:
       case 15:
       case 25:
@@ -413,8 +412,7 @@ class ShapeType {
       case 8:
       case 18:
       case 28:
-        throw ArgumentError("MultiPoint handling not implemented yet.");
-      // return new MultiPointHandler(this, gf);
+        return MultiPointHandler.withType(this, gf);
       default:
         return null;
     }
