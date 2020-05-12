@@ -24,3 +24,4 @@ part 'src/com/hydrologis/dart_shp/shapefile_header.dart';
 part 'src/com/hydrologis/dart_shp/shapefilefeature_reader.dart';
 part 'src/com/hydrologis/dart_shp/index_reader.dart';
 part 'src/com/hydrologis/dart_shp/point_handler.dart';
+part 'src/com/hydrologis/dart_shp/polygon_handler.dart';

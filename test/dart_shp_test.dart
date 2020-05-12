@@ -14,6 +14,8 @@ void main() async {
   File pointTestShp;
   File danishShp;
   File rusShp;
+  File chineseShp;
+  File polygontestShp;
   FieldFormatter victim;
   setUpAll(() async {
     statesDbf = File('./test/shapes/statepop.dbf');
@@ -21,6 +23,8 @@ void main() async {
     pointTestShp = File('./test/shapes/pointtest.shp');
     danishShp = File('./test/shapes/danish_point.shp');
     rusShp = File('./test/shapes/rus-windows-1251.shp');
+    chineseShp = File('./test/shapes/chinese_poly.shp');
+    polygontestShp = File('./test/shapes/polygontest.shp');
     victim =
         FieldFormatter(Charset.defaultCharset(), TimeZones.getDefault(), false);
   });
@@ -326,8 +330,44 @@ void main() async {
         var coord = id2Coor[text];
         if (coord != null) {
           var fCoord = feature.geometry.getCoordinate();
-          assertEqualsD(
-              fCoord.distance(coord), 0, 0.001, "fCoord: $fCoord -> coord: $coord");
+          assertEqualsD(fCoord.distance(coord), 0, 0.001,
+              "fCoord: $fCoord -> coord: $coord");
+        }
+      }
+
+      reader?.close();
+    });
+    test('testChinesePolygons', () async {
+      var reader = ShapefileFeatureReader(chineseShp);
+      await reader.open();
+      while (await reader.hasNext()) {
+        Feature feature = await reader.next();
+        var code = feature.attributes["ADCODE93"];
+        assertEquals(code, 230000);
+        var geometry = feature.geometry;
+        var area = geometry.getArea();
+        assertEqualsD(area, 53.956, 0.001, "${area} is not 53.956");
+        // TODO do something for chinese
+        // var name = feature.attributes["NAME"];
+        // assertEquals(name, "asd", "Could not match: $name");
+      }
+
+      reader?.close();
+    });
+    test('testPolygonTest', () async {
+      var reader = ShapefileFeatureReader(polygontestShp);
+      await reader.open();
+      while (await reader.hasNext()) {
+        Feature feature = await reader.next();
+        var id = feature.attributes["ID"];
+        var geometry = feature.geometry;
+        var area = geometry.getArea();
+        if (id == 1) {
+          assertEqualsD(area, 0.167, 0.001, "${area} is not 0.167");
+          assertEquals(geometry.getCoordinates().length, 7);
+        } else if (id == 2) {
+          assertEqualsD(area, 0.261, 0.001, "${area} is not 0.261");
+          assertEquals(geometry.getCoordinates().length, 9);
         }
       }
 

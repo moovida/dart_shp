@@ -30,12 +30,12 @@ class Record {
   GeometryFactory geometryFactory;
   ShapeHandler handler;
   bool flatGeometry;
-  LByteBuffer buffer;
+  
 
-  Record(this.buffer, this.geometryFactory, this.handler, this.flatGeometry);
+  Record(this.geometryFactory, this.handler, this.flatGeometry);
 
   /// Fetch the shape stored in this record. */
-  dynamic getShape() {
+  dynamic getShape(LByteBuffer buffer) {
     if (shape == null) {
       buffer.position = start;
       buffer.endian = Endian.little;
@@ -58,42 +58,42 @@ class Record {
     return Envelope(minX, maxX, minY, maxY);
   }
 
-  Object getSimplifiedShape() {
-    CoordinateSequenceFactory csf =
-        geometryFactory.getCoordinateSequenceFactory();
-    if (type.isPointType()) {
-      CoordinateSequence cs = Shapeutils.createCS(csf, 1, 2);
-      cs.setOrdinate(0, 0, (minX + maxX) / 2);
-      cs.setOrdinate(0, 1, (minY + maxY) / 2);
-      return geometryFactory
-          .createMultiPoint([geometryFactory.createPointSeq(cs)]);
-    } else if (type.isLineType()) {
-      CoordinateSequence cs = Shapeutils.createCS(csf, 2, 2);
-      cs.setOrdinate(0, 0, minX);
-      cs.setOrdinate(0, 1, minY);
-      cs.setOrdinate(1, 0, maxX);
-      cs.setOrdinate(1, 1, maxY);
-      return geometryFactory
-          .createMultiLineString([geometryFactory.createLineStringSeq(cs)]);
-    } else if (type.isPolygonType()) {
-      CoordinateSequence cs = Shapeutils.createCS(csf, 5, 2);
-      cs.setOrdinate(0, 0, minX);
-      cs.setOrdinate(0, 1, minY);
-      cs.setOrdinate(1, 0, minX);
-      cs.setOrdinate(1, 1, maxY);
-      cs.setOrdinate(2, 0, maxX);
-      cs.setOrdinate(2, 1, maxY);
-      cs.setOrdinate(3, 0, maxX);
-      cs.setOrdinate(3, 1, minY);
-      cs.setOrdinate(4, 0, minX);
-      cs.setOrdinate(4, 1, minY);
-      LinearRing ring = geometryFactory.createLinearRingSeq(cs);
-      return geometryFactory
-          .createMultiPolygon([geometryFactory.createPolygon(ring, null)]);
-    } else {
-      return getShape();
-    }
-  }
+  // Object getSimplifiedShape() {
+  //   CoordinateSequenceFactory csf =
+  //       geometryFactory.getCoordinateSequenceFactory();
+  //   if (type.isPointType()) {
+  //     CoordinateSequence cs = Shapeutils.createCS(csf, 1, 2);
+  //     cs.setOrdinate(0, 0, (minX + maxX) / 2);
+  //     cs.setOrdinate(0, 1, (minY + maxY) / 2);
+  //     return geometryFactory
+  //         .createMultiPoint([geometryFactory.createPointSeq(cs)]);
+  //   } else if (type.isLineType()) {
+  //     CoordinateSequence cs = Shapeutils.createCS(csf, 2, 2);
+  //     cs.setOrdinate(0, 0, minX);
+  //     cs.setOrdinate(0, 1, minY);
+  //     cs.setOrdinate(1, 0, maxX);
+  //     cs.setOrdinate(1, 1, maxY);
+  //     return geometryFactory
+  //         .createMultiLineString([geometryFactory.createLineStringSeq(cs)]);
+  //   } else if (type.isPolygonType()) {
+  //     CoordinateSequence cs = Shapeutils.createCS(csf, 5, 2);
+  //     cs.setOrdinate(0, 0, minX);
+  //     cs.setOrdinate(0, 1, minY);
+  //     cs.setOrdinate(1, 0, minX);
+  //     cs.setOrdinate(1, 1, maxY);
+  //     cs.setOrdinate(2, 0, maxX);
+  //     cs.setOrdinate(2, 1, maxY);
+  //     cs.setOrdinate(3, 0, maxX);
+  //     cs.setOrdinate(3, 1, minY);
+  //     cs.setOrdinate(4, 0, minX);
+  //     cs.setOrdinate(4, 1, minY);
+  //     LinearRing ring = geometryFactory.createLinearRingSeq(cs);
+  //     return geometryFactory
+  //         .createMultiPolygon([geometryFactory.createPolygon(ring, null)]);
+  //   } else {
+  //     return getShape();
+  //   }
+  // }
 
   //  Object getSimplifiedShape(ScreenMap sm) {
   //     if (type.isPointType()) {
@@ -225,7 +225,7 @@ class ShapefileReader {
     }
     if (limit != buffer.limit) {
       // clean up the old buffer and allocate a new one
-      buffer = LByteBuffer(limit);
+      buffer = LByteBuffer(limit, doSigned: true);
     }
     return buffer;
   }
@@ -246,8 +246,9 @@ class ShapefileReader {
     geometryFactory = gf;
 
     // start small
-    buffer = LByteBuffer(1024);
+    buffer = LByteBuffer(1024, doSigned: true);
     await fill(buffer, channel);
+
     buffer.flip();
     currentOffset = 0;
 
@@ -322,7 +323,7 @@ class ShapefileReader {
 
     // ensure the proper position, regardless of read or handler behavior
     var nextOffset = await getNextOffset();
-    positionBufferForOffset(buffer, nextOffset);
+    await positionBufferForOffset(buffer, nextOffset);
 
     // no more data left
     if (buffer.remaining < 8) {
@@ -402,23 +403,23 @@ class ShapefileReader {
   //     return len;
   // }
 
-  void positionBufferForOffset(LByteBuffer buffer, int offset) {
+  Future<void> positionBufferForOffset(LByteBuffer buf, int offset) async {
     // Check to see if requested offset is already loaded; ensure that record header is in the
     // buffer
-    if (currentOffset <= offset && currentOffset + buffer.limit >= offset + 8) {
-      buffer.position = toBufferOffset(offset);
+    if (currentOffset <= offset && currentOffset + buf.limit >= offset + 8) {
+      buf.position = toBufferOffset(offset);
     } else {
       if (!randomAccessEnabled) {
         throw StateError("Random Access not enabled");
       }
       var fc = channel as FileReaderRandom;
 
-      fc.setPosition(offset);
+      await fc.setPosition(offset);
       currentOffset = offset;
-      buffer.position = 0;
-      buffer.limit = buffer.capacity;
-      fill(buffer, fc);
-      buffer.flip();
+      buf.position = 0;
+      buf.limit = buf.capacity;
+      await fill(buf, fc);
+      buf.flip();
     }
   }
 
@@ -427,7 +428,8 @@ class ShapefileReader {
   /// @return The record instance associated with this reader.
   Future<Record> nextRecord() async {
     // need to update position
-    positionBufferForOffset(buffer, await getNextOffset());
+    var offset = await getNextOffset();
+    await positionBufferForOffset(buffer, offset);
     if (currentShape != UNKNOWN) currentShape++;
 
     // record header is big endian
@@ -467,7 +469,8 @@ class ShapefileReader {
     buffer.endian = Endian.little;
 
     // read the type, handlers don't need it
-    ShapeType recordType = ShapeType.forID(buffer.getInt32());
+    var typeInt = buffer.getInt32();
+    ShapeType recordType = ShapeType.forID(typeInt);
 
     // this usually happens if the handler logic is bunk,
     // but bad files could exist as well...
@@ -480,7 +483,7 @@ class ShapefileReader {
     // many handler's may ignore bounds reading, but we don't want to
     // second guess them...
     buffer.mark();
-    record = Record(buffer, geometryFactory, handler, flatGeometry);
+    record = Record(geometryFactory, handler, flatGeometry);
     if (recordType.isMultiPoint()) {
       record.minX = buffer.getDouble64();
       record.minY = buffer.getDouble64();
@@ -518,7 +521,7 @@ class ShapefileReader {
   Future<void> goTo(int offset) async {
     disableShxUsage();
     if (randomAccessEnabled) {
-      positionBufferForOffset(buffer, offset);
+      await positionBufferForOffset(buffer, offset);
 
       int oldRecordOffset = recordEnd;
       recordEnd = offset;

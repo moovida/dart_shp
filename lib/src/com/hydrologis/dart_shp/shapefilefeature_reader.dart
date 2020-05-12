@@ -128,8 +128,7 @@ class ShapefileFeatureReader {
   Future<bool> hasNext() async {
     while (nextFeature == null && await filesHaveMore()) {
       Record record = await shp.nextRecord();
-
-      Geometry geometry = getGeometry(record);
+      Geometry geometry = getGeometry(record, shp.buffer);
       if (geometry != SKIP) {
         // also grab the dbf row
         Row row;
@@ -156,7 +155,7 @@ class ShapefileFeatureReader {
 
   /// Reads the geometry, it will return {@link #SKIP} if the records is to be skipped because of
   /// the screenmap or because it does not match the target bbox
-  Geometry getGeometry(Record record) {
+  Geometry getGeometry(Record record, LByteBuffer buffer) {
     // read the geometry, so that we can decide if this row is to be skipped or not
     Envelope envelope = record.envelope();
     Geometry geometry;
@@ -187,7 +186,7 @@ class ShapefileFeatureReader {
       //     }
       //     // ... otherwise business as usual
     } else {
-      geometry = record.getShape() as Geometry;
+      geometry = record.getShape(buffer) as Geometry;
     }
     // }
     return geometry;

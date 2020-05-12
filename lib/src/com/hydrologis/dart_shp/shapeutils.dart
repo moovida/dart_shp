@@ -83,6 +83,144 @@ class Shapeutils {
     }
     return cs;
   }
+
+  /// Determine the min and max "z" values in an array of Coordinates.
+  ///
+  /// @param cs The array to search.
+  /// @param target array with at least two elements where to hold the min and max zvalues.
+  ///     target[0] will be filled with the minimum zvalue, target[1] with the maximum. The array
+  ///     current values, if not NaN, will be taken into acount in the computation.
+  static void zMinMax(final CoordinateSequence cs, List<double> target) {
+    if (cs.getDimension() < 3) {
+      return;
+    }
+    double zmin;
+    double zmax;
+    bool validZFound = false;
+
+    zmin = double.nan;
+    zmax = double.nan;
+
+    double z;
+    final int size = cs.size();
+    for (int t = size - 1; t >= 0; t--) {
+      z = cs.getOrdinate(t, 2);
+
+      if (!(z.isNaN)) {
+        if (validZFound) {
+          if (z < zmin) {
+            zmin = z;
+          }
+
+          if (z > zmax) {
+            zmax = z;
+          }
+        } else {
+          validZFound = true;
+          zmin = z;
+          zmax = z;
+        }
+      }
+    }
+
+    if (!zmin.isNaN) {
+      target[0] = zmin;
+    }
+    if (!zmax.isNaN) {
+      target[1] = (zmax);
+    }
+  }
+
+  /// Computes whether a ring defined by an array of {@link Coordinate}s is oriented
+  /// counter-clockwise.
+  ///
+  /// <ul>
+  ///   <li>The list of points is assumed to have the first and last points equal.
+  ///   <li>This will handle coordinate lists which contain repeated points.
+  /// </ul>
+  ///
+  /// This algorithm is <b>only</b> guaranteed to work with valid rings. If the ring is invalid
+  /// (e.g. self-crosses or touches), the computed result may not be correct.
+  ///
+  /// @param ring an array of Coordinates forming a ring
+  /// @return true if the ring is oriented counter-clockwise.
+  static bool isCCW(CoordinateSequence ring) {
+    // # of points without closing endpoint
+    int nPts = ring.size() - 1;
+
+    // find highest point
+    double hiy = ring.getOrdinate(0, 1);
+    int hiIndex = 0;
+    for (int i = 1; i <= nPts; i++) {
+      if (ring.getOrdinate(i, 1) > hiy) {
+        hiy = ring.getOrdinate(i, 1);
+        hiIndex = i;
+      }
+    }
+
+    // find distinct point before highest point
+    int iPrev = hiIndex;
+    do {
+      iPrev = iPrev - 1;
+      if (iPrev < 0) iPrev = nPts;
+    } while (equals2D(ring, iPrev, hiIndex) && iPrev != hiIndex);
+
+    // find distinct point after highest point
+    int iNext = hiIndex;
+    do {
+      iNext = (iNext + 1) % nPts;
+    } while (equals2D(ring, iNext, hiIndex) && iNext != hiIndex);
+
+    /**
+         * This check catches cases where the ring contains an A-B-A configuration of points. This
+         * can happen if the ring does not contain 3 distinct points (including the case where the
+         * input array has fewer than 4 elements), or it contains coincident line segments.
+         */
+    if (equals2D(ring, iPrev, hiIndex) ||
+        equals2D(ring, iNext, hiIndex) ||
+        equals2D(ring, iPrev, iNext)) return false;
+
+    int disc = computeOrientation(ring, iPrev, hiIndex, iNext);
+
+    /**
+         * If disc is exactly 0, lines are collinear. There are two possible cases: (1) the lines
+         * lie along the x axis in opposite directions (2) the lines lie on top of one another
+         *
+         * <p>(1) is handled by checking if next is left of prev ==> CCW (2) will never happen if
+         * the ring is valid, so don't check for it (Might want to assert this)
+         */
+    bool isCCW = false;
+    if (disc == 0) {
+      // poly is CCW if prev x is right of next x
+      isCCW = (ring.getOrdinate(iPrev, 0) > ring.getOrdinate(iNext, 0));
+    } else {
+      // if area is positive, points are ordered CCW
+      isCCW = (disc > 0);
+    }
+    return isCCW;
+  }
+
+  static bool equals2D(CoordinateSequence cs, int i, int j) {
+    return cs.getOrdinate(i, 0) == cs.getOrdinate(j, 0) &&
+        cs.getOrdinate(i, 1) == cs.getOrdinate(j, 1);
+  }
+
+  static int computeOrientation(CoordinateSequence cs, int p1, int p2, int q) {
+    // travelling along p1->p2, turn counter clockwise to get to q return 1,
+    // travelling along p1->p2, turn clockwise to get to q return -1,
+    // p1, p2 and q are colinear return 0.
+    double p1x = cs.getOrdinate(p1, 0);
+    double p1y = cs.getOrdinate(p1, 1);
+    double p2x = cs.getOrdinate(p2, 0);
+    double p2y = cs.getOrdinate(p2, 1);
+    double qx = cs.getOrdinate(q, 0);
+    double qy = cs.getOrdinate(q, 1);
+    double dx1 = p2x - p1x;
+    double dy1 = p2y - p1y;
+    double dx2 = qx - p2x;
+    double dy2 = qy - p2y;
+    return RobustDeterminant.signOfDet2x2(dx1, dy1, dx2, dy2);
+  }
 }
 
 /// A ShapeHandler defines what is needed to construct and persist geometries based upon the
@@ -271,8 +409,7 @@ class ShapeType {
       case 5:
       case 15:
       case 25:
-        throw ArgumentError("Polygon handling not implemented yet.");
-      // return new PolygonHandler(this, gf);
+        return PolygonHandler.withType(this, gf);
       case 8:
       case 18:
       case 28:
@@ -280,6 +417,266 @@ class ShapeType {
       // return new MultiPointHandler(this, gf);
       default:
         return null;
+    }
+  }
+}
+
+/**
+ * Implements an algorithm to compute the sign of a 2x2 determinant for double precision values
+ * robustly. It is a direct translation of code developed by Olivier Devillers.
+ *
+ * <p>The original code carries the following copyright notice:
+ *
+ * <pre>
+ * ************************************************************************
+ * Author : Olivier Devillers
+ * Olivier.Devillers@sophia.inria.fr
+ * http:/www.inria.fr:/prisme/personnel/devillers/anglais/determinant.html
+ *
+ * Olivier Devillers has allowed the code to be distributed under
+ * the LGPL (2012-02-16) saying "It is ok for LGPL distribution."
+ *
+ * *************************************************************************
+ *
+ * *************************************************************************
+ *              Copyright (c) 1995  by  INRIA Prisme Project
+ *                  BP 93 06902 Sophia Antipolis Cedex, France.
+ *                           All rights reserved
+ * *************************************************************************
+ * </pre>
+ */
+class RobustDeterminant {
+  // public static int callCount = 0; // debugging only
+
+  static int signOfDet2x2(double x1, double y1, double x2, double y2) {
+    // returns -1 if the determinant is negative,
+    // returns 1 if the determinant is positive,
+    // retunrs 0 if the determinant is null.
+    int sign;
+    double swap;
+    double k;
+    int count = 0;
+
+    // callCount++; // debugging only
+
+    sign = 1;
+
+    /*
+         * testing null entries
+         */
+    if ((x1 == 0.0) || (y2 == 0.0)) {
+      if ((y1 == 0.0) || (x2 == 0.0)) {
+        return 0;
+      } else if (y1 > 0) {
+        if (x2 > 0) {
+          return -sign;
+        } else {
+          return sign;
+        }
+      } else {
+        if (x2 > 0) {
+          return sign;
+        } else {
+          return -sign;
+        }
+      }
+    }
+    if ((y1 == 0.0) || (x2 == 0.0)) {
+      if (y2 > 0) {
+        if (x1 > 0) {
+          return sign;
+        } else {
+          return -sign;
+        }
+      } else {
+        if (x1 > 0) {
+          return -sign;
+        } else {
+          return sign;
+        }
+      }
+    }
+
+    /*
+         * making y coordinates positive and permuting the entries
+         */
+    /*
+         * so that y2 is the biggest one
+         */
+    if (0.0 < y1) {
+      if (0.0 < y2) {
+        if (y1 > y2) {
+          sign = -sign;
+          swap = x1;
+          x1 = x2;
+          x2 = swap;
+          swap = y1;
+          y1 = y2;
+          y2 = swap;
+        }
+      } else {
+        if (y1 <= -y2) {
+          sign = -sign;
+          x2 = -x2;
+          y2 = -y2;
+        } else {
+          swap = x1;
+          x1 = -x2;
+          x2 = swap;
+          swap = y1;
+          y1 = -y2;
+          y2 = swap;
+        }
+      }
+    } else {
+      if (0.0 < y2) {
+        if (-y1 <= y2) {
+          sign = -sign;
+          x1 = -x1;
+          y1 = -y1;
+        } else {
+          swap = -x1;
+          x1 = x2;
+          x2 = swap;
+          swap = -y1;
+          y1 = y2;
+          y2 = swap;
+        }
+      } else {
+        if (y1 >= y2) {
+          x1 = -x1;
+          y1 = -y1;
+          x2 = -x2;
+          y2 = -y2;
+        } else {
+          sign = -sign;
+          swap = -x1;
+          x1 = -x2;
+          x2 = swap;
+          swap = -y1;
+          y1 = -y2;
+          y2 = swap;
+        }
+      }
+    }
+
+    /*
+         * making x coordinates positive
+         */
+    /*
+         * if |x2| < |x1| one can conclude
+         */
+    if (0.0 < x1) {
+      if (0.0 < x2) {
+        if (x1 > x2) {
+          return sign;
+        }
+      } else {
+        return sign;
+      }
+    } else {
+      if (0.0 < x2) {
+        return -sign;
+      } else {
+        if (x1 >= x2) {
+          sign = -sign;
+          x1 = -x1;
+          x2 = -x2;
+        } else {
+          return -sign;
+        }
+      }
+    }
+
+    /*
+         * all entries strictly positive x1 <= x2 and y1 <= y2
+         */
+    while (true) {
+      count = count + 1;
+      k = (x2 / x1).floorToDouble();
+      x2 = x2 - k * x1;
+      y2 = y2 - k * y1;
+
+      /*
+             * testing if R (new U2) is in U1 rectangle
+             */
+      if (y2 < 0.0) {
+        return -sign;
+      }
+      if (y2 > y1) {
+        return sign;
+      }
+
+      /*
+             * finding R'
+             */
+      if (x1 > x2 + x2) {
+        if (y1 < y2 + y2) {
+          return sign;
+        }
+      } else {
+        if (y1 > y2 + y2) {
+          return -sign;
+        } else {
+          x2 = x1 - x2;
+          y2 = y1 - y2;
+          sign = -sign;
+        }
+      }
+      if (y2 == 0.0) {
+        if (x2 == 0.0) {
+          return 0;
+        } else {
+          return -sign;
+        }
+      }
+      if (x2 == 0.0) {
+        return sign;
+      }
+
+      /*
+             * exchange 1 and 2 role.
+             */
+      k = (x1 / x2).floorToDouble();
+      x1 = x1 - k * x2;
+      y1 = y1 - k * y2;
+
+      /*
+             * testing if R (new U1) is in U2 rectangle
+             */
+      if (y1 < 0.0) {
+        return sign;
+      }
+      if (y1 > y2) {
+        return -sign;
+      }
+
+      /*
+             * finding R'
+             */
+      if (x2 > x1 + x1) {
+        if (y2 < y1 + y1) {
+          return -sign;
+        }
+      } else {
+        if (y2 > y1 + y1) {
+          return sign;
+        } else {
+          x1 = x2 - x1;
+          y1 = y2 - y1;
+          sign = -sign;
+        }
+      }
+      if (y1 == 0.0) {
+        if (x1 == 0.0) {
+          return 0;
+        } else {
+          return sign;
+        }
+      }
+      if (x1 == 0.0) {
+        return -sign;
+      }
     }
   }
 }
