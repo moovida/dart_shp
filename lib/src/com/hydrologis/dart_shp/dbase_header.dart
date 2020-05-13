@@ -392,7 +392,7 @@ class DbaseFileHeader {
   ///     call java.nio.Channels.getChannel(InputStream in).
   /// @ If errors occur while reading.
   Future<void> readHeader(AFileReader channel) async {
-    await readHeaderWithCharset(channel, Charset.defaultCharset());
+    await readHeaderWithCharset(channel, Charset());
   }
 
   /// Read the header data from the DBF file.
@@ -450,7 +450,7 @@ class DbaseFileHeader {
       DbaseField field = DbaseField();
 
       List<int> buffer = (await channel.get(11));
-      String name = charset.encode(buffer);
+      String name = await charset.decode(buffer);
       int nullPoint = name.indexOf(String.fromCharCode(0));
       if (nullPoint != -1) {
         name = name.substring(0, nullPoint);

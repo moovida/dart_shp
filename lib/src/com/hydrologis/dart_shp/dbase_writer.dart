@@ -38,7 +38,7 @@ class DbaseFileWriter {
 
   Future<void> open() async {
     await header.writeHeader(channel);
-    charset = charset ??= Charset.defaultCharset();
+    charset = charset ??= Charset();
     timeZone = timeZone ??= TimeZones.getDefault();
     formatter = FieldFormatter(charset, timeZone, !reportFieldSizeErrors);
 
@@ -114,7 +114,7 @@ class DbaseFileWriter {
       if (record[i] == null) {
         bytes = nullValues[i];
       } else {
-        bytes = fieldBytes(record[i], i);
+        bytes = await fieldBytes(record[i], i);
         // if the returned array is not the proper length
         // write a null instead; this will only happen
         // when the formatter handles a value improperly.
@@ -135,14 +135,14 @@ class DbaseFileWriter {
   /// @return The bytes of a string representation of the given object in the current character
   ///     encoding.
   /// @throws UnsupportedEncodingException Thrown if the current charset is unsupported.
-  List<int> fieldBytes(Object obj, final int col) {
+  Future<List<int>> fieldBytes(Object obj, final int col) async {
     String o;
     final int fieldLen = header.getFieldLength(col);
     var fieldType = header.getFieldType(col);
     switch (String.fromCharCode(fieldType)) {
       case 'C':
       case 'c':
-        o = formatter.getFieldString(fieldLen, obj.toString());
+        o = await formatter.getFieldString(fieldLen, obj.toString());
         break;
       case 'L':
       case 'l':
@@ -154,7 +154,7 @@ class DbaseFileWriter {
         break;
       case 'M':
       case 'G':
-        o = formatter.getFieldString(fieldLen, obj.toString());
+        o = await formatter.getFieldString(fieldLen, obj.toString());
         break;
       case 'N':
       case 'n':
@@ -201,7 +201,7 @@ class DbaseFileWriter {
     }
 
     // convert the string to bytes with the given charset.
-    return charset.decode(o);
+    return await charset.encode(o);
   }
 
   /// Release resources associated with this writer. <B>Highly recommended</B>
@@ -271,7 +271,7 @@ class FieldFormatter {
     return sb.toString();
   }
 
-  String getFieldString(int size, String s) {
+  Future<String> getFieldString(int size, String s) async {
     try {
       String buffer = createEmptyString();
       // buffer.replace(0, size, emptyString);
@@ -286,7 +286,7 @@ class FieldFormatter {
         buffer = buffer.replaceRange(0, size, s);
         // TODO here Characters might be used
         var subStr = s.substring(0, math.min(size, s.length));
-        int currentBytes = charset.decode(subStr).length;
+        int currentBytes = (await charset.encode(subStr)).length;
         // int currentBytes =
         //         subStr
         //                 .getBytes(charset.name())

@@ -25,8 +25,7 @@ void main() async {
     rusShp = File('./test/shapes/rus-windows-1251.shp');
     chineseShp = File('./test/shapes/chinese_poly.shp');
     polygontestShp = File('./test/shapes/polygontest.shp');
-    victim =
-        FieldFormatter(Charset.defaultCharset(), TimeZones.getDefault(), false);
+    victim = FieldFormatter(Charset(), TimeZones.getDefault(), false);
   });
 
   tearDownAll(() {});
@@ -70,7 +69,7 @@ void main() async {
         Row r = await dbf2.readRow();
         for (int i = 0, ii = attrs.length; i < ii; i++) {
           var attr1 = attrs[i];
-          var attr2 = r.read(i);
+          var attr2 = await r.read(i);
           assertNotNull(attr1);
           assertNotNull(attr2);
           assertEquals(attr1, attr2);
@@ -121,8 +120,7 @@ void main() async {
         header.setNumRecords(20);
 
         var fileWriter = FileWriter(temp);
-        DbaseFileWriter dbf =
-            DbaseFileWriter(header, fileWriter, Charset.defaultCharset());
+        DbaseFileWriter dbf = DbaseFileWriter(header, fileWriter, Charset());
         await dbf.open();
         for (int i = 0; i < header.getNumRecords(); i++) {
           await dbf.writeRecord(List<dynamic>(6));
@@ -148,21 +146,24 @@ void main() async {
       }
     });
     test('testFieldFormatter', () async {
-      FieldFormatter formatter = FieldFormatter(
-          Charset.defaultCharset(), TimeZones.getDefault(), false);
+      Charset cs = Charset();
+      await cs.setCharsetEncoding(UTF16); // use dart internal
+      FieldFormatter formatter =
+          FieldFormatter(cs, TimeZones.getDefault(), false);
 
       var stringWithInternationChars = 'hello ' '\u20ac';
-      var format = formatter.getFieldString(10, stringWithInternationChars);
+      var format =
+          await formatter.getFieldString(10, stringWithInternationChars);
       assertEquals('          '.codeUnits.length, format.codeUnits.length);
 
       // test when the string is too big.
       stringWithInternationChars = '\u20ac' '1234567890';
-      format = formatter.getFieldString(10, stringWithInternationChars);
+      format = await formatter.getFieldString(10, stringWithInternationChars);
 
       assertEquals('          '.codeUnits.length, format.codeUnits.length);
     });
     test('testNulls', () async {
-      Charset cs = Charset.defaultCharset(); //("ISO-8859-1");
+      Charset cs = Charset();
 
       TimeZones tz = TimeZones.getTimeZone("UTC");
       List<String> types = ['C', 'N', 'F', 'L', 'D'];
@@ -290,70 +291,7 @@ void main() async {
 
       reader?.close();
     });
-    test('testDanishPoints', () async {
-      var reader = ShapefileFeatureReader(danishShp);
-      await reader.open();
-      var id2Coor = {
-        1: [Coordinate(714477, 6171916), "Charløtte"],
-        2: [Coordinate(715676, 6172305), "Noah"],
-        3: [Coordinate(714579, 6171156), "Laura"],
-        4: [Coordinate(715085, 6169602), "Lukas"],
-      };
-      while (await reader.hasNext()) {
-        Feature feature = await reader.next();
-        var id = feature.attributes["ID"];
-        var list = id2Coor[id];
-        if (list != null) {
-          var fCoord = feature.geometry.getCoordinate();
-          var coord = list[0];
-          assertEqualsD(
-              fCoord.distance(coord), 0, 1, "fCoord: $fCoord -> coord: $coord");
 
-          var fname = feature.attributes["TEKST1"];
-          var name = list[1];
-          assertEquals(fname, name, "$fname vs $name");
-        }
-      }
-
-      reader?.close();
-    });
-    test('testRussianPoints', () async {
-      var reader = ShapefileFeatureReader(rusShp);
-      await reader.open();
-      var id2Coor = {
-        "Êèðèëëèöà": Coordinate(-0.814, 0.610),
-        "Ñìåøàíûé 12345": Coordinate(0.367, 0.620),
-      };
-      while (await reader.hasNext()) {
-        Feature feature = await reader.next();
-        var text = feature.attributes["TEXT"];
-        var coord = id2Coor[text];
-        if (coord != null) {
-          var fCoord = feature.geometry.getCoordinate();
-          assertEqualsD(fCoord.distance(coord), 0, 0.001,
-              "fCoord: $fCoord -> coord: $coord");
-        }
-      }
-
-      reader?.close();
-    });
-    test('testChinesePolygons', () async {
-      var reader = ShapefileFeatureReader(chineseShp);
-      await reader.open();
-      while (await reader.hasNext()) {
-        Feature feature = await reader.next();
-        var code = feature.attributes["ADCODE93"];
-        assertEquals(code, 230000);
-        var geometry = feature.geometry;
-        var area = geometry.getArea();
-        assertEqualsD(area, 53.956, 0.001, "${area} is not 53.956");
-        // TODO do something for chinese
-        // var name = feature.attributes["NAME"];
-        // assertEquals(name, "asd", "Could not match: $name");
-      }
-
-      reader?.close();
-    });
     test('testPolygonTest', () async {
       var reader = ShapefileFeatureReader(polygontestShp);
       await reader.open();
@@ -452,6 +390,94 @@ void main() async {
 
       reader?.close();
     });
+    test('testArabic', () async {
+      var file = File('./test/shapes/test_arabic.shp');
+      Charset cs = Charset(); // use utf8, known to be the charset of the shp
+      var reader = ShapefileFeatureReader(file, charset: cs);
+      await reader.open();
+      if (await reader.hasNext()) {
+        Feature feature = await reader.next();
+        var distance = feature.geometry.distance(
+            GeometryFactory.defaultPrecision()
+                .createPoint(Coordinate(31.230342, 29.91187)));
+        assertEqualsD(distance, 0, 0.0000001, "$distance is not zero");
+
+        var actType = "البنية الأساسية الريفية والري";
+        var actTypeActual = feature.attributes["ACT_TYPE"];
+        assertEquals(actTypeActual, actType);
+        var devType = "إعادة التأهيل";
+        var devTypeActual = feature.attributes["DEV_TYPE"];
+        assertEquals(devTypeActual, devType);
+      }
+      reader?.close();
+    });
+    test('testDanishPoints UTF16', () async {
+      Charset cs = Charset();
+      await cs.setCharsetEncoding(UTF16); // use dart internal
+      var reader = ShapefileFeatureReader(danishShp, charset: cs);
+      await reader.open();
+      var id2Coor = {
+        1: [Coordinate(714477, 6171916), "Charløtte"],
+        2: [Coordinate(715676, 6172305), "Noah"],
+        3: [Coordinate(714579, 6171156), "Laura"],
+        4: [Coordinate(715085, 6169602), "Lukas"],
+      };
+      while (await reader.hasNext()) {
+        Feature feature = await reader.next();
+        var id = feature.attributes["ID"];
+        var list = id2Coor[id];
+        if (list != null) {
+          var fCoord = feature.geometry.getCoordinate();
+          var coord = list[0];
+          assertEqualsD(
+              fCoord.distance(coord), 0, 1, "fCoord: $fCoord -> coord: $coord");
+
+          var fname = feature.attributes["TEKST1"];
+          var name = list[1];
+          assertEquals(fname, name, "$fname vs $name");
+        }
+      }
+
+      reader?.close();
+    });
+    test('testRussianPoints UTF16', () async {
+      Charset cs = Charset();
+      await cs.setCharsetEncoding(UTF16);// use dart internal
+      var reader = ShapefileFeatureReader(rusShp, charset: cs);
+      await reader.open();
+      while (await reader.hasNext()) {
+        Feature feature = await reader.next();
+        var fCoord = feature.geometry.getCoordinate();
+        var text = feature.attributes["TEXT"];
+        print(text);
+        if (fCoord.distance(Coordinate(-0.814, 0.610)) < 0.001) {
+          assertEquals(text, "Êèðèëëèöà");
+        } else if (fCoord.distance(Coordinate(0.367, 0.620)) < 0.001) {
+          assertEquals(text, "Ñìåøàíûé 12345");
+        }
+      }
+
+      reader?.close();
+    });
+    test('testChinesePolygons', () async {
+      Charset cs = Charset();
+      await cs.setCharsetEncoding(UTF16);
+      var reader = ShapefileFeatureReader(chineseShp, charset: cs);
+      await reader.open();
+      while (await reader.hasNext()) {
+        Feature feature = await reader.next();
+        var code = feature.attributes["ADCODE93"];
+        assertEquals(code, 230000);
+        var geometry = feature.geometry;
+        var area = geometry.getArea();
+        assertEqualsD(area, 53.956, 0.001, "${area} is not 53.956");
+        // TODO do something for chinese
+        // var name = feature.attributes["NAME"];
+        // assertEquals(name, "asd", "Could not match: $name");
+      }
+
+      reader?.close();
+    });
   });
 }
 
@@ -480,8 +506,7 @@ String checkOutput(var victim, num n, int sz, int places) {
 }
 
 Future<DbaseFileReader> openDbf(File bdfFile) async {
-  var dbf = DbaseFileReader(
-      FileReaderRandom(bdfFile), Charset.defaultCharset(), null);
+  var dbf = DbaseFileReader(FileReaderRandom(bdfFile), Charset(), null);
   await dbf.open();
   return dbf;
 }

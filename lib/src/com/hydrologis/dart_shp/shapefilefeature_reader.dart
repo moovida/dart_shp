@@ -28,7 +28,7 @@ class ShapefileFeatureReader {
   DbaseFileHeader header;
   int numFields;
 
-  ShapefileFeatureReader(File shpFile) {
+  ShapefileFeatureReader(File shpFile, {Charset charset}) {
     String nameNoExt = FileUtilities.nameFromFile(shpFile.path, false);
 
     String parentFolder = FileUtilities.parentFolderFromFile(shpFile.path);
@@ -45,8 +45,9 @@ class ShapefileFeatureReader {
       shxReader = FileReaderRandom(shxFile);
     }
 
+    charset ??= Charset();
     shp = ShapefileReader(FileReaderRandom(shpFile), shxReader);
-    dbf = DbaseFileReader(FileReaderRandom(File(dbfPath)));
+    dbf = DbaseFileReader(FileReaderRandom(File(dbfPath)), charset);
   }
 
   Future<void> open() async {
@@ -141,8 +142,8 @@ class ShapefileFeatureReader {
           row = null;
         }
 
-        nextFeature =
-            buildFeature(shp.recordNumber, geometry, row, record.envelope());
+        nextFeature = await buildFeature(
+            shp.recordNumber, geometry, row, record.envelope());
       } else {
         if (dbf != null) {
           dbf.skip();
@@ -192,8 +193,8 @@ class ShapefileFeatureReader {
     return geometry;
   }
 
-  Feature buildFeature(
-      int number, Geometry geometry, Row row, Envelope envelope) {
+  Future<Feature> buildFeature(
+      int number, Geometry geometry, Row row, Envelope envelope) async {
     // if (dbfindexes != null) {
     //     for (int i = 0; i < dbfindexes.length; i++) {
     //         if (dbfindexes[i] == -1) {
@@ -215,7 +216,7 @@ class ShapefileFeatureReader {
 
     if (row != null) {
       for (var i = 0; i < numFields; i++) {
-        var read = row.read(i);
+        var read = await row.read(i);
         f.attributes[header.getFieldName(i)] = read;
       }
     }

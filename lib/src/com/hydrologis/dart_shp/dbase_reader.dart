@@ -13,26 +13,26 @@ class Row {
 
   Row(this.fieldOffsets, this.header, this.readObject);
 
-  dynamic read(final int column) {
+  Future<dynamic> read(final int column) async {
     final int offset = fieldOffsets[column];
-    return readObject(offset, column);
+    return await readObject(offset, column);
   }
 
-  @override
-  String toString() {
-    final ret = StringBuffer('DBF Row - ');
-    for (var i = 0; i < header.getNumFields(); i++) {
-      ret.write(header.getFieldName(i));
-      ret.write(': \'');
-      try {
-        ret.write(read(i));
-      } catch (ioe) {
-        ret.write(ioe.getMessage());
-      }
-      ret.write('\' ');
-    }
-    return ret.toString();
-  }
+  // @override
+  // String toString() {
+  //   final ret = StringBuffer('DBF Row - ');
+  //   for (var i = 0; i < header.getNumFields(); i++) {
+  //     ret.write(header.getFieldName(i));
+  //     ret.write(': \'');
+  //     try {
+  //       ret.write(read(i));
+  //     } catch (ioe) {
+  //       ret.write(ioe.getMessage());
+  //     }
+  //     ret.write('\' ');
+  //   }
+  //   return ret.toString();
+  // }
 
   bool isDeleted() {
     return deleted;
@@ -94,7 +94,7 @@ class DbaseFileReader {
   DbaseFileReader(this.afileReader, [this.stringCharset, this.timeZone]);
 
   Future<void> open() async {
-    stringCharset = stringCharset ?? Charset.defaultCharset();
+    stringCharset = stringCharset ?? Charset();
     // TimeZone calTimeZone = timeZone == null ? TimeZone.UTC : timeZone;
 
     header = DbaseFileHeader();
@@ -124,7 +124,7 @@ class DbaseFileReader {
     bytes = null; //List(header.getRecordLength() - 1);
 
     // check if we working with a latin-1 char Charset
-    final cname = stringCharset.charsetName;
+    final cname = stringCharset.charsetEncoding;
     oneBytePerChar = 'ISO-8859-1' == cname || 'US-ASCII' == cname;
 
     row = Row(fieldOffsets, header, readObject);
@@ -246,7 +246,7 @@ class DbaseFileReader {
     final numFields = header.getNumFields();
 
     for (var j = 0; j < numFields; j++) {
-      var object = readObject(fieldOffsets[j], j);
+      var object = await readObject(fieldOffsets[j], j);
       entry[j + offset] = object;
     }
 
@@ -260,8 +260,8 @@ class DbaseFileReader {
   /// @param fieldNum The field number to be read (zero based)
   /// @ If an error occurs.
   /// @return The value of the field
-  Object readField(final int fieldNum) {
-    return readObject(fieldOffsets[fieldNum], fieldNum);
+  Future<dynamic> readField(final int fieldNum) async {
+    return await readObject(fieldOffsets[fieldNum], fieldNum);
   }
 
   /// Transfer, by bytes, the next record to the writer. */
@@ -305,7 +305,7 @@ class DbaseFileReader {
     return await readEntryWithOffset(entry, 0);
   }
 
-  dynamic readObject(final int fieldOffset, final int fieldNum) {
+  Future<dynamic> readObject(final int fieldOffset, final int fieldNum)  async {
     final type = fieldTypes[fieldNum];
     final fieldLen = fieldLengths[fieldNum];
     dynamic object;
@@ -345,7 +345,7 @@ class DbaseFileReader {
               object = fastParse(bytes, fieldOffset, fieldLen).trim();
             } else {
               var sublist = bytes.sublist(fieldOffset, fieldOffset + fieldLen);
-              var string = stringCharset.encode(sublist).trim();
+              var string = (await stringCharset.decode(sublist)).trim();
               var characters = Characters(string);
 
               if (characters.endsWith(NULL_CHARACTERS)) {
