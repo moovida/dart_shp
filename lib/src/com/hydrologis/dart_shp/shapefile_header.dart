@@ -29,7 +29,7 @@ class ShapefileHeader {
     if (fileCode != MAGIC) {
       String message = "Wrong magic number, expected $MAGIC, got $fileCode";
       if (!strict) {
-        LOGGER.i(message);
+        ShpLogger().i(message);
       } else {
         throw StateError(message);
       }
@@ -40,7 +40,7 @@ class ShapefileHeader {
     if (version != VERSION) {
       String message = "Wrong version, expected $VERSION, got $version";
       if (!strict) {
-        LOGGER.i(message);
+        ShpLogger().i(message);
       } else {
         throw StateError(message);
       }

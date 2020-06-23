@@ -30,7 +30,6 @@ class Record {
   GeometryFactory geometryFactory;
   ShapeHandler handler;
   bool flatGeometry;
-  
 
   Record(this.geometryFactory, this.handler, this.flatGeometry);
 
@@ -184,11 +183,11 @@ class ShapefileReader {
       try {
         shxReader = IndexFile(shxChannel);
         await shxReader.open();
-      } catch (e) {
-        LOGGER.w(
+      } catch (e, s) {
+        ShpLogger().e(
             "Could not open the .shx file, continuing "
             "assuming the .shp file is not sparse",
-            e);
+            s);
         currentShape = UNKNOWN;
       }
     }

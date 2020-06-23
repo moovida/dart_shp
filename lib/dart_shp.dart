@@ -9,7 +9,6 @@ import 'dart:math' as math;
 import 'package:characters/characters.dart';
 import 'package:dart_jts/dart_jts.dart' hide Type;
 import 'package:dart_jts/dart_jts.dart' as JTS;
-import 'package:logger/logger.dart';
 // import 'package:timezone/data/latest.dart' as tz;
 // import 'package:timezone/timezone.dart';
 

@@ -438,7 +438,7 @@ class FieldFormatter {
         //     if (buffer.length() > size) {
         //         // we have a grevious problem -- the value does not fit in the required
         //         // size.
-        //         LOGGER.w(
+        //         ShpLogger().w(
         //                 'Writing DBF data, value $n cannot be represented in size $size');
         //         if (!swallowFieldSizeErrors) {
         //             // rather than truncate, and corrupt the data, we throw a Runtime

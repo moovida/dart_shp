@@ -28,12 +28,12 @@ class IndexFile {
   /// Load the index file from the given reader.
   Future<void> open() async {
     try {
-      // LOGGER.v("Loading all shx...");
+      // ShpLogger().v("Loading all shx...");
       // await readHeader(afileReader);
       // await readRecords(afileReader);
       // afileReader.close();
 
-      LOGGER.v("Reading from file...");
+      ShpLogger().v("Reading from file...");
       buf = LByteBuffer(8 * RECS_IN_BUFFER);
       await afileReader.readIntoBuffer(buf);
       buf.flip();
@@ -104,7 +104,7 @@ class IndexFile {
     if (pos - channelOffset < 0 ||
         channelOffset + buf.limit <= pos ||
         lastIndex == -1) {
-      LOGGER.v("Filling buffer...");
+      ShpLogger().v("Filling buffer...");
       channelOffset = pos;
       await (afileReader as FileReaderRandom).setPosition(pos);
       buf.clear();

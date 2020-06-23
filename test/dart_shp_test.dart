@@ -9,6 +9,8 @@ import 'package:test/test.dart';
 import 'testing_utilities.dart';
 
 void main() async {
+  ShpLogger().doConsoleLogging = false;
+
   File statesDbf;
   File nullsDbf;
   File pointTestShp;
@@ -444,7 +446,7 @@ void main() async {
     });
     test('testRussianPoints UTF16', () async {
       Charset cs = Charset();
-      await cs.setCharsetEncoding(UTF16);// use dart internal
+      await cs.setCharsetEncoding(UTF16); // use dart internal
       var reader = ShapefileFeatureReader(rusShp, charset: cs);
       await reader.open();
       while (await reader.hasNext()) {

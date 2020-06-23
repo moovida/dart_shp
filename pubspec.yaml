@@ -10,8 +10,6 @@ environment:
 
 dependencies:
   path: ^1.6.0
-  # MIT
-  logger: ^0.8.3
   #BSD
   dart_jts: ^0.0.5+2
   # BSD
@@ -21,7 +19,8 @@ dependencies:
   # BSD
   intl: ^0.16.1
 
-  dart_hydrologis_utils: any
+  dart_hydrologis_utils: #any
+    path: ../dart_hydrologis_utils/
     # git:
     #   url: https://github.com/moovida/dart_hydrologis_utils.git
 

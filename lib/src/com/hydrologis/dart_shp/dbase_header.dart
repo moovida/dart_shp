@@ -190,7 +190,7 @@ class DbaseFileHeader {
     // Sorry folks.
     if (tempFieldName.length > 10) {
       tempFieldName = tempFieldName.substring(0, 10);
-      LOGGER.w('FieldName ' +
+      ShpLogger().w('FieldName ' +
           inFieldName +
           ' is longer than 10 characters, truncating to ' +
           tempFieldName);
@@ -201,17 +201,17 @@ class DbaseFileHeader {
     if ((inFieldType == 'C') || (inFieldType == 'c')) {
       tempFieldDescriptors[fields.length].fieldType = 'C'.codeUnitAt(0);
       if (inFieldLength > 254) {
-        LOGGER.v('Field Length for ' +
+        ShpLogger().v('Field Length for ' +
             inFieldName +
             ' set to $inFieldLength Which is longer than 254, not consistent with dbase III');
       }
     } else if ((inFieldType == 'S') || (inFieldType == 's')) {
       tempFieldDescriptors[fields.length].fieldType = 'C'.codeUnitAt(0);
-      LOGGER.w('Field type for ' +
+      ShpLogger().w('Field type for ' +
           inFieldName +
           ' set to S which is flat out wrong people!, I am setting this to C, in the hopes you meant character.');
       if (inFieldLength > 254) {
-        LOGGER.v('Field Length for ' +
+        ShpLogger().v('Field Length for ' +
             inFieldName +
             ' set to $inFieldLength Which is longer than 254, not consistent with dbase III');
       }
@@ -219,7 +219,7 @@ class DbaseFileHeader {
     } else if ((inFieldType == 'D') || (inFieldType == 'd')) {
       tempFieldDescriptors[fields.length].fieldType = 'D'.codeUnitAt(0);
       if (inFieldLength != 8) {
-        LOGGER.v('Field Length for ' +
+        ShpLogger().v('Field Length for ' +
             inFieldName +
             ' set to $inFieldLength Setting to 8 digits YYYYMMDD');
       }
@@ -227,7 +227,7 @@ class DbaseFileHeader {
     } else if (inFieldType == '@') {
       tempFieldDescriptors[fields.length].fieldType = '@'.codeUnitAt(0);
       if (inFieldLength != 8) {
-        LOGGER.v('Field Length for ' +
+        ShpLogger().v('Field Length for ' +
             inFieldName +
             ' set to $inFieldLength Setting to 8 digits - two longs,' +
             'one long for date and one long for time');
@@ -236,25 +236,25 @@ class DbaseFileHeader {
     } else if ((inFieldType == 'F') || (inFieldType == 'f')) {
       tempFieldDescriptors[fields.length].fieldType = 'F'.codeUnitAt(0);
       if (inFieldLength > 20) {
-        LOGGER.v('Field Length for ' +
+        ShpLogger().v('Field Length for ' +
             inFieldName +
             ' set to $inFieldLength Preserving length, but should be set to Max of 20 not valid for dbase IV, and UP specification, not present in dbaseIII.');
       }
     } else if ((inFieldType == 'N') || (inFieldType == 'n')) {
       tempFieldDescriptors[fields.length].fieldType = 'N'.codeUnitAt(0);
       if (inFieldLength > 18) {
-        LOGGER.v('Field Length for ' +
+        ShpLogger().v('Field Length for ' +
             inFieldName +
             ' set to $inFieldLength Preserving length, but should be set to Max of 18 for dbase III specification.');
       }
       if (inDecimalCount < 0) {
-        LOGGER.v('Field Decimal Position for ' +
+        ShpLogger().v('Field Decimal Position for ' +
             inFieldName +
             ' set to $inDecimalCount Setting to 0 no decimal data will be saved.');
         tempFieldDescriptors[fields.length].decimalCount = 0;
       }
       if (inDecimalCount > inFieldLength - 1) {
-        LOGGER.w('Field Decimal Position for ' +
+        ShpLogger().w('Field Decimal Position for ' +
             inFieldName +
             ' set to $inDecimalCount Setting to ${inFieldLength - 1} no non decimal data will be saved.');
         tempFieldDescriptors[fields.length].decimalCount = inFieldLength - 1;
@@ -262,7 +262,7 @@ class DbaseFileHeader {
     } else if ((inFieldType == 'L') || (inFieldType == 'l')) {
       tempFieldDescriptors[fields.length].fieldType = 'L'.codeUnitAt(0);
       if (inFieldLength != 1) {
-        LOGGER.v('Field Length for ' +
+        ShpLogger().v('Field Length for ' +
             inFieldName +
             ' set to $inFieldLength Setting to length of 1 for logical fields.');
       }
@@ -296,7 +296,7 @@ class DbaseFileHeader {
         // if this is the last field and we still haven't found the
         // named field
         if (i == j && i == fields.length - 1) {
-          LOGGER.w('Could not find a field named '
+          ShpLogger().w('Could not find a field named '
               ' + inFieldName + '
               ' for removal');
           return retCol;
