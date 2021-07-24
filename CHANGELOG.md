@@ -1,4 +1,8 @@
 
+## 0.4.0
+
+- migration to null safety
+
 ## 0.3.2
 
 - upgrade dependencies
