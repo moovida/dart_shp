@@ -15,15 +15,15 @@ part of dart_shp;
 /// @author Ian Schneider
 class DbaseFileWriter {
   DbaseFileHeader header;
-  FieldFormatter formatter;
+  late FieldFormatter formatter;
   FileWriter channel;
 
   /// The null values to use for each column. This will be accessed only when null values are
   /// actually encountered, but it is allocated in the ctor to save time and memory.
-  List<List<int>> nullValues;
+  late List<List<int>> nullValues;
 
-  Charset charset;
-  TimeZones timeZone;
+  Charset? charset;
+  TimeZones? timeZone;
 
   bool reportFieldSizeErrors =
       true; // ("org.geotools.shapefile.reportFieldSizeErrors");
@@ -45,7 +45,8 @@ class DbaseFileWriter {
     // As the 'shapelib' osgeo project does, we use specific values for
     // null cells. We can set up these values for each column once, in
     // the constructor, to save time and memory.
-    nullValues = List(header.getNumFields());
+    nullValues = List.filled(
+        header.getNumFields(), <int>[]); //  List(header.getNumFields());
     for (int i = 0; i < nullValues.length; i++) {
       String nullChar;
       var fieldType = String.fromCharCode(header.getFieldType(i));
@@ -136,7 +137,7 @@ class DbaseFileWriter {
   ///     encoding.
   /// @throws UnsupportedEncodingException Thrown if the current charset is unsupported.
   Future<List<int>> fieldBytes(Object obj, final int col) async {
-    String o;
+    String? o;
     final int fieldLen = header.getFieldLength(col);
     var fieldType = header.getFieldType(col);
     switch (String.fromCharCode(fieldType)) {
@@ -179,7 +180,7 @@ class DbaseFileWriter {
         }
         break;
       case '@':
-        o = formatter.getFieldStringDate(obj);
+        o = formatter.getFieldStringDate(obj as DateTime);
         // TODO check back on this
         // if (bool.getbool("org.geotools.shapefile.datetime")) {
         //     // Adding the charset to getBytes causes the output to
@@ -201,7 +202,7 @@ class DbaseFileWriter {
     }
 
     // convert the string to bytes with the given charset.
-    return await charset.encode(o);
+    return await charset!.encode(o!);
   }
 
   /// Release resources associated with this writer. <B>Highly recommended</B>
@@ -216,11 +217,11 @@ class DbaseFileWriter {
     // buffer.position(0);
     // buffer.put((byte) 0).position(0).limit(1);
     // write();
-    if (channel != null && channel.isOpen) {
+    if (channel.isOpen) {
       channel.close();
     }
-    channel = null;
-    formatter = null;
+    // channel = null;
+    // formatter = null;
   }
 
   bool getReportFieldSizeErrors() {
@@ -242,22 +243,22 @@ class FieldFormatter {
   NumberFormat numFormat = NumberFormat.decimalPattern('en_US');
   final int MILLISECS_PER_DAY = 24 * 60 * 60 * 1000;
 
-  String emptyString;
+  late String emptyString;
   static final int MAXCHARS = 255;
-  Charset charset;
+  Charset? charset;
 
   bool swallowFieldSizeErrors = false;
 
   FieldFormatter(
-      Charset charset, TimeZones timeZone, bool swallowFieldSizeErrors) {
+      this.charset, TimeZones? timeZone, bool swallowFieldSizeErrors) {
     // Avoid grouping on number format
     numFormat.turnOffGrouping(); // setGroupingUsed(false);
     // build a 255 white spaces string
     emptyString = createEmptyString();
 
-    this.charset = charset;
-
-    timeZone.setZone('en_US');
+    if (timeZone != null) {
+      timeZone.setZone('en_US');
+    }
     // this.calendar = Calendar.getInstance(timeZone, Locale.US);
 
     this.swallowFieldSizeErrors = swallowFieldSizeErrors;
@@ -271,7 +272,7 @@ class FieldFormatter {
     return sb.toString();
   }
 
-  Future<String> getFieldString(int size, String s) async {
+  Future<String> getFieldString(int size, String? s) async {
     try {
       String buffer = createEmptyString();
       // buffer.replace(0, size, emptyString);
@@ -286,7 +287,7 @@ class FieldFormatter {
         buffer = buffer.replaceRange(0, size, s);
         // TODO here Characters might be used
         var subStr = s.substring(0, math.min(size, s.length));
-        int currentBytes = (await charset.encode(subStr)).length;
+        int currentBytes = (await charset!.encode(subStr)).length;
         // int currentBytes =
         //         subStr
         //                 .getBytes(charset.name())
@@ -355,7 +356,7 @@ class FieldFormatter {
     return buffer.toString();
   }
 
-  String getFieldStringDateTime(DateTime d) {
+  String? getFieldStringDateTime(DateTime? d) {
     // Sanity check
     if (d == null) return null;
 

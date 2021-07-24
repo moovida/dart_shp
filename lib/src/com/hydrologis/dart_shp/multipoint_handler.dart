@@ -3,23 +3,19 @@ part of dart_shp;
 /// @author aaime
 /// @author Ian Schneider
 class MultiPointHandler implements ShapeHandler {
-  ShapeType shapeType;
+  late ShapeType shapeType;
   GeometryFactory geometryFactory;
 
   /// Creates new MultiPointHandler */
-  MultiPointHandler(GeometryFactory gf) {
+  MultiPointHandler(this.geometryFactory) {
     shapeType = ShapeType.POINT;
-    geometryFactory = gf;
   }
 
-  MultiPointHandler.withType(ShapeType type, GeometryFactory gf) {
-    if (!type.isMultiPointType()) {
+  MultiPointHandler.withType(this.shapeType, this.geometryFactory) {
+    if (!shapeType.isMultiPointType()) {
       throw ShapefileException(
           "Multipointhandler constructor - expected type to be 8, 18, or 28");
     }
-
-    shapeType = type;
-    geometryFactory = gf;
   }
 
   /// Returns the shapefile shape type value for a point
@@ -66,7 +62,7 @@ class MultiPointHandler implements ShapeHandler {
   }
 
   @override
-  dynamic read(LByteBuffer buffer, ShapeType type, bool flatGeometry) {
+  dynamic read(LByteBuffer buffer, ShapeType? type, bool flatGeometry) {
     if (type == ShapeType.NULL) {
       return createNull();
     }
@@ -94,9 +90,9 @@ class MultiPointHandler implements ShapeHandler {
     // DoubleBuffer dbuffer = buffer.asDoubleBuffer();
     // double[] ordinates = new double[numpoints * 2];
     // dbuffer.get(ordinates);
-    List<double> ordinates = List(numpoints * 2);
-    for (var i = 0; i < ordinates.length; i++) {
-      ordinates[i] = buffer.getDouble64();
+    List<double> ordinates = []; //List(numpoints * 2);
+    for (var i = 0; i < numpoints * 2; i++) {
+      ordinates.add(buffer.getDouble64());
     }
 
     for (int t = 0; t < numpoints; t++) {
@@ -149,7 +145,7 @@ class MultiPointHandler implements ShapeHandler {
     buffer.putInt32(mp.getNumGeometries());
 
     for (int t = 0, tt = mp.getNumGeometries(); t < tt; t++) {
-      Coordinate c = (mp.getGeometryN(t)).getCoordinate();
+      Coordinate c = (mp.getGeometryN(t)).getCoordinate()!;
       buffer.putDouble64(c.x);
       buffer.putDouble64(c.y);
     }
@@ -168,7 +164,7 @@ class MultiPointHandler implements ShapeHandler {
       }
 
       for (int t = 0; t < mp.getNumGeometries(); t++) {
-        Coordinate c = (mp.getGeometryN(t)).getCoordinate();
+        Coordinate c = (mp.getGeometryN(t)).getCoordinate()!;
         double z = c.getZ();
 
         if (z.isNaN) {

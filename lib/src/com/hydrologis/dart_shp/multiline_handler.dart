@@ -3,13 +3,13 @@ part of dart_shp;
 /// The default JTS handler for shapefile. Currently uses the default JTS GeometryFactory, since it
 /// doesn't seem to matter.
 class MultiLineHandler implements ShapeHandler {
-  ShapeType shapeType;
+  late ShapeType shapeType;
 
-  GeometryFactory geometryFactory;
+  late GeometryFactory geometryFactory;
 
-  List<double> xy;
+  // List<double> xy;
 
-  List<double> z;
+  // List<double> z;
 
   /// Create a MultiLineHandler for ShapeType.ARC */
   MultiLineHandler(GeometryFactory gf) {
@@ -75,7 +75,7 @@ class MultiLineHandler implements ShapeHandler {
   }
 
   @override
-  dynamic read(LByteBuffer buffer, ShapeType type, bool flatGeometry) {
+  dynamic read(LByteBuffer buffer, ShapeType? type, bool flatGeometry) {
     if (type == ShapeType.NULL) {
       return createNull();
     }
@@ -90,7 +90,7 @@ class MultiLineHandler implements ShapeHandler {
     int numParts = buffer.getInt32();
     int numPoints = buffer.getInt32(); // total number of points
 
-    List<int> partOffsets = List(numParts);
+    List<int> partOffsets = List.filled(numParts, 0);
 
     // points = new Coordinate[numPoints];
     for (int i = 0; i < numParts; i++) {
@@ -98,7 +98,7 @@ class MultiLineHandler implements ShapeHandler {
     }
     // read the first two coordinates and start building the coordinate
     // sequences
-    List<CoordinateSequence> lines = List(numParts);
+    List<CoordinateSequence> lines = []; //List(numParts);
     int finish, start = 0;
     int length = 0;
     bool clonePoint = false;
@@ -141,7 +141,7 @@ class MultiLineHandler implements ShapeHandler {
       }
       // List<double> xy = new double[xyLength * 2];
       // doubleBuffer.get(xy);
-      List<double> xy = List(xyLength * 2);
+      List<double> xy = List.filled(xyLength * 2, 0.0);
       for (var i = 0; i < xy.length; i++) {
         xy[i] = buffer.getDouble64();
       }
@@ -158,7 +158,8 @@ class MultiLineHandler implements ShapeHandler {
             1, CoordinateSequence.Y, cs.getOrdinate(0, CoordinateSequence.Y));
       }
 
-      lines[part] = cs;
+      lines.add(cs);
+      // lines[part] = cs;
     }
 
     // if we have another coordinate, read and add to the coordinate
@@ -187,7 +188,7 @@ class MultiLineHandler implements ShapeHandler {
 
         // List<double> z = new double[length];
         // doubleBuffer.get(z);
-        List<double> z = List(length);
+        List<double> z = List.filled(length, 0.0);
         for (var i = 0; i < z.length; i++) {
           z[i] = buffer.getDouble64();
         }
@@ -222,7 +223,7 @@ class MultiLineHandler implements ShapeHandler {
 
         // List<double> m = new double[length];
         // doubleBuffer.get(m);
-        List<double> m = List(length);
+        List<double> m = List.filled(length, 0.0);
         for (var i = 0; i < m.length; i++) {
           m[i] = buffer.getDouble64();
         }
@@ -233,9 +234,10 @@ class MultiLineHandler implements ShapeHandler {
     }
 
     // Prepare line strings and return the multilinestring
-    List<LineString> lineStrings = List(numParts);
+    List<LineString> lineStrings = []; // List(numParts);
     for (int part = 0; part < numParts; part++) {
-      lineStrings[part] = geometryFactory.createLineStringSeq(lines[part]);
+      lineStrings.add(geometryFactory.createLineStringSeq(lines[part]));
+      // lineStrings[part] = geometryFactory.createLineStringSeq(lines[part]);
     }
 
     return geometryFactory.createMultiLineString(lineStrings);

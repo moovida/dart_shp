@@ -17,9 +17,9 @@ class IndexFile {
   int lastIndex = -1;
   int recOffset = 0;
   int recLen = 0;
-  ShapefileHeader header;
-  List<int> content;
-  LByteBuffer buf;
+  late ShapefileHeader header;
+  late List<int> content;
+  late LByteBuffer buf;
 
   bool closed = false;
 
@@ -42,9 +42,11 @@ class IndexFile {
       header = ShapefileHeader();
       header.read(buf, true);
     } catch (e) {
-      if (afileReader != null) {
+      // if (afileReader != null) {
+      try {
         afileReader.close();
-      }
+      } on Exception catch (ex) {}
+      // }
       rethrow;
     }
   }
@@ -69,7 +71,7 @@ class IndexFile {
       await channel.readIntoBuffer(buf);
     }
     buf.flip();
-    await header.read(buf, true);
+    header.read(buf, true);
   }
 
   Future<void> readRecords(AFileReader channel) async {
@@ -120,12 +122,12 @@ class IndexFile {
 
   void close() {
     closed = true;
-    if (afileReader != null && afileReader.isOpen) {
+    if (/*afileReader != null && */ afileReader.isOpen) {
       afileReader.close();
     }
-    content = null;
-    afileReader = null;
-    buf = null;
+    // content = null;
+    // afileReader = null;
+    // buf = null;
   }
 
   void finalize() {

@@ -5,23 +5,20 @@ part of dart_shp;
 /// @author aaime
 /// @author Ian Schneider
 class PointHandler extends ShapeHandler {
-  ShapeType shapeType;
+  late ShapeType shapeType;
   GeometryFactory geometryFactory;
 
-  PointHandler.withType(ShapeType type, GeometryFactory gf) {
-    if ((type != ShapeType.POINT) &&
-        (type != ShapeType.POINTM) &&
-        (type != ShapeType.POINTZ)) {
+  PointHandler.withType(this.shapeType, this.geometryFactory) {
+    if ((shapeType != ShapeType.POINT) &&
+        (shapeType != ShapeType.POINTM) &&
+        (shapeType != ShapeType.POINTZ)) {
       // 2d, 2d+m, 3d+m
       throw ShapefileException(
           "PointHandler constructor: expected a type of 1, 11 or 21");
     }
-
-    shapeType = type;
-    geometryFactory = gf;
   }
 
-  PointHandler() {
+  PointHandler(this.geometryFactory) {
     shapeType = ShapeType.POINT; // 2d
   }
 
@@ -49,7 +46,7 @@ class PointHandler extends ShapeHandler {
   }
 
   @override
-  dynamic read(LByteBuffer buffer, ShapeType type, bool flatGeometry) {
+  dynamic read(LByteBuffer buffer, ShapeType? type, bool flatGeometry) {
     if (type == ShapeType.NULL) {
       return createNull();
     }
@@ -85,7 +82,7 @@ class PointHandler extends ShapeHandler {
   @override
   void write(LByteBuffer buffer, Object geometry) {
     Point point = geometry as Point;
-    Coordinate c = point.getCoordinate();
+    Coordinate c = point.getCoordinate()!;
 
     buffer.putDouble64(c.x);
     buffer.putDouble64(c.y);

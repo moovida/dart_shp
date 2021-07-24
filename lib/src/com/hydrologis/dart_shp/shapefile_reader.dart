@@ -3,25 +3,25 @@ part of dart_shp;
 /// The reader returns only one Record instance in its lifetime. The record contains the current
 /// record information.
 class Record {
-  int length;
+  int length = 0;
 
-  int offset; // Relative to the whole file
+  int offset = 0; // Relative to the whole file
 
   int start = 0; // Relative to the current loaded buffer
 
   /// The minimum X value. */
-  double minX;
+  double minX = 0.0;
 
   /// The minimum Y value. */
-  double minY;
+  double minY = 0.0;
 
   /// The maximum X value. */
-  double maxX;
+  double maxX = 0.0;
 
   /// The maximum Y value. */
-  double maxY;
+  double maxY = 0.0;
 
-  ShapeType type;
+  ShapeType? type;
 
   // int end = 0; // Relative to the whole file
 
@@ -130,37 +130,37 @@ class ShapefileReader {
   /// specific byte offset manually, or because the .shx could not be opened
   static final int UNKNOWN = -9223372036854775807;
 
-  ShapeHandler handler;
+  ShapeHandler? handler;
 
-  ShapefileHeader header;
+  late ShapefileHeader header;
 
   AFileReader channel;
-  AFileReader shxChannel;
+  AFileReader? shxChannel;
 
-  LByteBuffer buffer;
+  late LByteBuffer buffer;
 
   ShapeType fileShapeType = ShapeType.UNDEFINED;
 
-  LByteBuffer headerTransfer;
+  late LByteBuffer headerTransfer;
 
-  Record record;
+  Record? record;
   int recordEnd = 0;
   int recordNumber = 0;
 
-  bool randomAccessEnabled;
+  bool randomAccessEnabled = false;
 
   int currentOffset = 0;
 
   int currentShape = 0;
 
-  IndexFile shxReader;
-  GeometryFactory geometryFactory;
+  IndexFile? shxReader;
+  GeometryFactory? geometryFactory;
 
   bool flatGeometry = false;
 
-  bool onlyRandomAccess;
+  bool onlyRandomAccess = false;
 
-  bool strict;
+  bool strict = false;
 
   /// Creates a new instance of ShapeFile.
   ///
@@ -181,8 +181,8 @@ class ShapefileReader {
     randomAccessEnabled = shxChannel != null && shxChannel is FileReaderRandom;
     if (!onlyRandomAccess) {
       try {
-        shxReader = IndexFile(shxChannel);
-        await shxReader.open();
+        shxReader = IndexFile(shxChannel!);
+        await shxReader!.open();
       } catch (e, s) {
         ShpLogger().e(
             "Could not open the .shx file, continuing "
@@ -192,14 +192,14 @@ class ShapefileReader {
       }
     }
     geometryFactory ??= GeometryFactory.defaultPrecision();
-    await init(strict, geometryFactory);
+    await init(strict, geometryFactory!);
   }
 
   /// Disables .shx file usage. By doing so you drop support for sparse shapefiles, the .shp will
   /// have to be without holes, all the valid shapefile records will have to be contiguous.
   void disableShxUsage() {
     if (shxReader != null) {
-      shxReader.close();
+      shxReader!.close();
       shxReader = null;
     }
     currentShape = UNKNOWN;
@@ -280,17 +280,17 @@ class ShapefileReader {
   /// @ If errors occur while closing the channel.
   void close() {
     // don't throw NPE on double close
-    if (channel == null) return;
+    // if (channel == null) return;
     try {
       if (channel.isOpen) {
         channel.close();
       }
     } finally {
-      if (shxReader != null) shxReader.close();
+      if (shxReader != null) shxReader!.close();
     }
     shxReader = null;
-    channel = null;
-    header = null;
+    // channel = null;
+    // header = null;
   }
 
   bool supportsRandomAccess() {
@@ -316,7 +316,7 @@ class ShapefileReader {
     // don't read past the end of the file (provided currentShape accurately
     // represents the current position)
     if (currentShape > UNKNOWN &&
-        currentShape > shxReader.getRecordCount() - 1) {
+        currentShape > shxReader!.getRecordCount() - 1) {
       return false;
     }
 
@@ -349,7 +349,7 @@ class ShapefileReader {
 
   Future<int> getNextOffset() async {
     if (currentShape >= 0) {
-      return await shxReader.getOffsetInBytes(currentShape);
+      return await shxReader!.getOffsetInBytes(currentShape);
     } else {
       return recordEnd;
     }
@@ -425,7 +425,7 @@ class ShapefileReader {
   /// Fetch the next record information.
   ///
   /// @return The record instance associated with this reader.
-  Future<Record> nextRecord() async {
+  Future<Record?> nextRecord() async {
     // need to update position
     var offset = await getNextOffset();
     await positionBufferForOffset(buffer, offset);
@@ -482,29 +482,29 @@ class ShapefileReader {
     // many handler's may ignore bounds reading, but we don't want to
     // second guess them...
     buffer.mark();
-    record = Record(geometryFactory, handler, flatGeometry);
+    record = Record(geometryFactory!, handler!, flatGeometry);
     if (recordType.isMultiPoint()) {
-      record.minX = buffer.getDouble64();
-      record.minY = buffer.getDouble64();
-      record.maxX = buffer.getDouble64();
-      record.maxY = buffer.getDouble64();
+      record!.minX = buffer.getDouble64();
+      record!.minY = buffer.getDouble64();
+      record!.maxX = buffer.getDouble64();
+      record!.maxY = buffer.getDouble64();
     } else if (recordType != ShapeType.NULL) {
-      record.minX = record.maxX = buffer.getDouble64();
-      record.minY = record.maxY = buffer.getDouble64();
+      record!.minX = record!.maxX = buffer.getDouble64();
+      record!.minY = record!.maxY = buffer.getDouble64();
     }
     buffer.reset();
 
-    record.offset = recordEnd;
+    record!.offset = recordEnd;
     // update all the record info.
-    record.length = recordLength;
-    record.type = recordType;
+    record!.length = recordLength;
+    record!.type = recordType;
     recordNumber = recordNumberTmp;
     // remember, we read one int already...
     recordEnd = toFileOffset(buffer.position) + recordLength - 4;
     // mark this position for the reader
-    record.start = buffer.position;
+    record!.start = buffer.position;
     // clear any cached shape
-    record.shape = null;
+    record!.shape = null;
 
     return record;
   }
@@ -549,7 +549,7 @@ class ShapefileReader {
     if (randomAccessEnabled) {
       await goTo(offset);
       var rec = await nextRecord();
-      return rec.shape();
+      return rec?.shape();
     }
     throw StateError("Random Access not enabled");
   }
@@ -568,7 +568,7 @@ class ShapefileReader {
   /// @return The record after the offset location in the bytestream
   /// @ thrown in a read error occurs
   /// @throws UnsupportedOperationException thrown if not a random access file
-  Future<Record> recordAt(int offset) async {
+  Future<Record?> recordAt(int offset) async {
     if (randomAccessEnabled) {
       await goTo(offset);
       return await nextRecord();

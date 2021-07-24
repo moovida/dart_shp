@@ -5,7 +5,7 @@ final NULL_CHARACTERS = Characters(NULL_CHAR);
 
 // TODO NOT YET IMPLEMENTED
 class TimeZones {
-  String _timeZoneName;
+  String? _timeZoneName;
 
   static void init() {
     // tz.initializeTimeZones();

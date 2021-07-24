@@ -20,7 +20,7 @@ const String WKT_MULTIPOLYGON =
 const String WKT_GC =
     "GEOMETRYCOLLECTION (POLYGON ((100 200, 200 200, 200 100, 100 100, 100 200)), LINESTRING (150 250, 250 250))";
 
-assertEquals(actual, matcher, [String msg]) {
+void assertEquals(actual, matcher, [String? msg]) {
   if (actual is double && matcher is double) {
     if (actual.isNaN && matcher.isNaN) return;
   }
@@ -30,7 +30,7 @@ assertEquals(actual, matcher, [String msg]) {
   expect(actual, matcher, reason: msg);
 }
 
-assertEqualsD(double n1, double n2, double tolerance, [String msg]) {
+void assertEqualsD(double n1, double n2, double tolerance, [String? msg]) {
   if (n1.isNaN && n2.isNaN) {
     expect((n1.isNaN && n2.isNaN), true);
   } else {
@@ -39,24 +39,24 @@ assertEqualsD(double n1, double n2, double tolerance, [String msg]) {
   }
 }
 
-assertEqualsExact(Geometry expectedValue, Geometry actualValue) {
+void assertEqualsExact(Geometry expectedValue, Geometry actualValue) {
   assertTrueMsg("Expected $expectedValue but encountered $actualValue",
       actualValue.equalsExactGeom(expectedValue));
 }
 
-assertTrue(actual) {
+void assertTrue(actual) {
   expect(actual, true);
 }
 
-assertNotNull(actual) {
+void assertNotNull(actual) {
   expect(actual != null, true);
 }
 
-assertIsNull(actual) {
+void assertIsNull(actual) {
   expect(actual == null, true);
 }
 
-assertTrueMsg(String msg, actual) {
+void assertTrueMsg(String msg, actual) {
   expect(actual, true, reason: msg);
 }
 
@@ -66,5 +66,5 @@ WKTReader readerWKT = WKTReader.withFactory(geomFactory);
 
 Geometry read(String wkt) {
   //return read(readerWKT, wkt);
-  return WKTReader.withFactory(geomFactory).read(wkt);
+  return WKTReader.withFactory(geomFactory).read(wkt)!;
 }

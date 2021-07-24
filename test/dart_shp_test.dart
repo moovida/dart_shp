@@ -11,14 +11,14 @@ import 'testing_utilities.dart';
 void main() async {
   ShpLogger().doConsoleLogging = false;
 
-  File statesDbf;
-  File nullsDbf;
-  File pointTestShp;
-  File danishShp;
-  File rusShp;
-  File chineseShp;
-  File polygontestShp;
-  FieldFormatter victim;
+  late File statesDbf;
+  late File nullsDbf;
+  late File pointTestShp;
+  late File danishShp;
+  late File rusShp;
+  late File chineseShp;
+  late File polygontestShp;
+  late FieldFormatter victim;
   setUpAll(() async {
     statesDbf = File('./test/shapes/statepop.dbf');
     nullsDbf = File('./test/shapes/nulls.dbf');
@@ -40,7 +40,7 @@ void main() async {
       var numFields = header.getNumFields();
       expect(numFields, 252);
 
-      dbf?.close();
+      dbf.close();
     });
     test('testNumberOfRowsLoaded', () async {
       var dbf = await openDbf(statesDbf);
@@ -49,36 +49,36 @@ void main() async {
       var numRows = header.getNumRecords();
       expect(numRows, 49);
 
-      dbf?.close();
+      dbf.close();
     });
     test('testDataLoaded', () async {
       var dbf = await openDbf(statesDbf);
 
-      List<dynamic> attrs =
-          await dbf.readEntryInto(List(dbf.getHeader().getNumFields()));
-      expect(attrs[0], 'Illinois');
+      List<dynamic>? attrs = await dbf
+          .readEntryInto(List.filled(dbf.getHeader().getNumFields(), null));
+      expect(attrs![0], 'Illinois');
       expect(attrs[4] as double, 143986.61);
 
-      dbf?.close();
+      dbf.close();
     });
     test('testRowVsEntry', () async {
       var dbf = await openDbf(statesDbf);
       var dbf2 = await openDbf(statesDbf);
 
       while (dbf.hasNext()) {
-        List<dynamic> attrs =
-            await dbf.readEntryInto(List(dbf.getHeader().getNumFields()));
-        Row r = await dbf2.readRow();
-        for (int i = 0, ii = attrs.length; i < ii; i++) {
+        List<dynamic>? attrs = await dbf
+            .readEntryInto(List.filled(dbf.getHeader().getNumFields(), null));
+        Row? r = await dbf2.readRow();
+        for (int i = 0, ii = attrs!.length; i < ii; i++) {
           var attr1 = attrs[i];
-          var attr2 = await r.read(i);
+          var attr2 = await r!.read(i);
           assertNotNull(attr1);
           assertNotNull(attr2);
           assertEquals(attr1, attr2);
         }
       }
 
-      dbf?.close();
+      dbf.close();
     });
     test('testHeader', () async {
       DbaseFileHeader header = DbaseFileHeader();
@@ -125,7 +125,7 @@ void main() async {
         DbaseFileWriter dbf = DbaseFileWriter(header, fileWriter, Charset());
         await dbf.open();
         for (int i = 0; i < header.getNumRecords(); i++) {
-          await dbf.writeRecord(List<dynamic>(6));
+          await dbf.writeRecord(List<dynamic>.filled(6, null));
         }
         dbf.close();
 
@@ -138,7 +138,7 @@ void main() async {
           cnt++;
           var o = await r.readEntry();
           var numFields = header2.getNumFields();
-          assertTrue(o.length == numFields);
+          assertTrue(o!.length == numFields);
         }
         assertEquals(cnt, 20);
       } finally {
@@ -208,11 +208,11 @@ void main() async {
         await reader.open();
         assertTrue(values.length == reader.getHeader().getNumRecords());
         for (int row = 0; row < values.length; row++) {
-          List<dynamic> current = await reader.readEntry();
+          List<dynamic>? current = await reader.readEntry();
           assertTrue(current != null && current.length == values.length);
           for (int column = 0; column < values.length; column++) {
             if (column == row) {
-              assertTrue(current[column] != null);
+              assertTrue(current![column] != null);
               assertTrueMsg(
                   "Non-null column value " +
                       current[column].toString() +
@@ -220,7 +220,7 @@ void main() async {
                       values[column].toString(),
                   current[column] == values[column]);
             } else {
-              assertTrue(current[column] == null);
+              assertTrue(current![column] == null);
             }
           }
         }
@@ -244,13 +244,13 @@ void main() async {
 
       var records = <int, double>{};
       while (dbfReader.hasNext()) {
-        final List<dynamic> fields = await dbfReader.readEntry();
-        records[fields[0]] = fields[1];
+        final List<dynamic>? fields = await dbfReader.readEntry();
+        records[fields![0]] = fields[1];
       }
       dbfReader.close();
 
-      assertEqualsD(records[98586], 5.21, 0.00000001);
-      assertEqualsD(records[98538], 0.0, 0.00000001);
+      assertEqualsD(records[98586]!, 5.21, 0.00000001);
+      assertEqualsD(records[98538]!, 0.0, 0.00000001);
       assertIsNull(records[98289]);
       assertIsNull(records[98245]);
     });
@@ -286,12 +286,12 @@ void main() async {
         var id = feature.attributes["ID"];
         var coord = id2Coor[id];
         if (coord != null) {
-          var fCoord = feature.geometry.getCoordinate();
-          assertEqualsD(fCoord.distance(coord), 0, 0.00000001);
+          var fCoord = feature.geometry!.getCoordinate();
+          assertEqualsD(fCoord!.distance(coord), 0, 0.00000001);
         }
       }
 
-      reader?.close();
+      reader.close();
     });
 
     test('testPolygonTest', () async {
@@ -301,7 +301,7 @@ void main() async {
         Feature feature = await reader.next();
         var id = feature.attributes["ID"];
         var geometry = feature.geometry;
-        var area = geometry.getArea();
+        var area = geometry!.getArea();
         if (id == 1) {
           assertEqualsD(area, 0.167, 0.001, "${area} is not 0.167");
           assertEquals(geometry.getCoordinates().length, 7);
@@ -311,7 +311,7 @@ void main() async {
         }
       }
 
-      reader?.close();
+      reader.close();
     });
     test('testCountries', () async {
       var countries = File('./test/shapes/ne/countries.shp');
@@ -326,14 +326,14 @@ void main() async {
       assertEquals(features.length, 1);
 
       var f = features[0];
-      var geomNum = f.geometry.getNumGeometries();
+      var geomNum = f.geometry!.getNumGeometries();
       assertEquals(geomNum, 29);
 
       assertEquals(f.attributes["SOVEREIGNT"], "Italy");
       assertEquals(f.attributes["ADMIN"], "Italy");
       assertEquals(f.attributes["POP_EST"], 58126212);
 
-      reader?.close();
+      reader.close();
     });
     test('testProvinces', () async {
       var file = File('./test/shapes/ne/provinces.shp');
@@ -345,12 +345,12 @@ void main() async {
           assertEquals(feature.attributes["name"], "Bozen");
           assertEquals(feature.attributes["name_local"], "");
 
-          assertEqualsD(feature.geometry.getArea(), 0.869, 0.001);
+          assertEqualsD(feature.geometry!.getArea(), 0.869, 0.001);
           break;
         }
       }
 
-      reader?.close();
+      reader.close();
     });
     test('testPois', () async {
       var file = File('./test/shapes/ne/poi.shp');
@@ -369,7 +369,7 @@ void main() async {
 
       assertEquals(list.length, 58);
 
-      reader?.close();
+      reader.close();
     });
     test('testRoads', () async {
       var file = File('./test/shapes/ne/roads.shp');
@@ -380,7 +380,7 @@ void main() async {
       var kmSum = 0.0;
       while (await reader.hasNext()) {
         Feature feature = await reader.next();
-        lSum += feature.geometry.getLength();
+        lSum += feature.geometry!.getLength();
         kmSum += feature.attributes["length_km"];
         list.add(feature);
       }
@@ -390,7 +390,7 @@ void main() async {
 
       assertEquals(list.length, 564);
 
-      reader?.close();
+      reader.close();
     });
     test('testArabic', () async {
       var file = File('./test/shapes/test_arabic.shp');
@@ -400,7 +400,7 @@ void main() async {
       await reader.open();
       if (await reader.hasNext()) {
         Feature feature = await reader.next();
-        var distance = feature.geometry.distance(
+        var distance = feature.geometry!.distance(
             GeometryFactory.defaultPrecision()
                 .createPoint(Coordinate(31.230342, 29.91187)));
         assertEqualsD(distance, 0, 0.0000001, "$distance is not zero");
@@ -413,7 +413,7 @@ void main() async {
         // var devTypeActual = feature.attributes["DEV_TYPE"];
         // assertEquals(devTypeActual, devType);
       }
-      reader?.close();
+      reader.close();
     });
     test('testDanishPoints UTF16', () async {
       Charset cs = Charset();
@@ -431,10 +431,10 @@ void main() async {
         var id = feature.attributes["ID"];
         var list = id2Coor[id];
         if (list != null) {
-          var fCoord = feature.geometry.getCoordinate();
+          var fCoord = feature.geometry!.getCoordinate();
           var coord = list[0];
-          assertEqualsD(
-              fCoord.distance(coord), 0, 1, "fCoord: $fCoord -> coord: $coord");
+          assertEqualsD(fCoord!.distance(coord as Coordinate), 0, 1,
+              "fCoord: $fCoord -> coord: $coord");
 
           var fname = feature.attributes["TEKST1"];
           var name = list[1];
@@ -442,7 +442,7 @@ void main() async {
         }
       }
 
-      reader?.close();
+      reader.close();
     });
     test('testRussianPoints UTF16', () async {
       Charset cs = Charset();
@@ -451,16 +451,16 @@ void main() async {
       await reader.open();
       while (await reader.hasNext()) {
         Feature feature = await reader.next();
-        var fCoord = feature.geometry.getCoordinate();
+        var fCoord = feature.geometry!.getCoordinate();
         var text = feature.attributes["TEXT"];
-        if (fCoord.distance(Coordinate(-0.814, 0.610)) < 0.001) {
+        if (fCoord!.distance(Coordinate(-0.814, 0.610)) < 0.001) {
           assertEquals(text, "Êèðèëëèöà");
         } else if (fCoord.distance(Coordinate(0.367, 0.620)) < 0.001) {
           assertEquals(text, "Ñìåøàíûé 12345");
         }
       }
 
-      reader?.close();
+      reader.close();
     });
     test('testChinesePolygons', () async {
       Charset cs = Charset();
@@ -472,14 +472,14 @@ void main() async {
         var code = feature.attributes["ADCODE93"];
         assertEquals(code, 230000);
         var geometry = feature.geometry;
-        var area = geometry.getArea();
+        var area = geometry!.getArea();
         assertEqualsD(area, 53.956, 0.001, "${area} is not 53.956");
         // TODO do something for chinese
         // var name = feature.attributes["NAME"];
         // assertEquals(name, "asd", "Could not match: $name");
       }
 
-      reader?.close();
+      reader.close();
     });
   });
 }
@@ -501,7 +501,8 @@ String checkOutput(var victim, num n, int sz, int places) {
   assertTrueMsg("ascii [$i]:$c", ascii);
   assertEquals(sz, s.length);
 
-  assertEqualsD(n.toDouble(), double.parse(s), math.pow(10.0, -places));
+  assertEqualsD(
+      n.toDouble(), double.parse(s), math.pow(10.0, -places).toDouble());
 
   // System.out.printf("%36s->%36s%n", n, s);
 

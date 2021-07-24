@@ -17,13 +17,13 @@ class ShapefileHeader {
 
   ShapeType shapeType = ShapeType.UNDEFINED;
 
-  double minX;
+  double minX = 0.0;
 
-  double maxX;
+  double maxX = 0.0;
 
-  double minY;
+  double minY = 0.0;
 
-  double maxY;
+  double maxY = 0.0;
 
   void checkMagic(bool strict) {
     if (fileCode != MAGIC) {

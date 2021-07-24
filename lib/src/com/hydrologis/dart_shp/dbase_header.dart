@@ -5,7 +5,7 @@ part of dart_shp;
 /// Thrown when an error relating to the shapefile occurs. */
 class DbaseFileException implements Exception {
   String msg;
-  Exception cause;
+  Exception? cause;
 
   DbaseFileException(this.msg);
 
@@ -18,19 +18,19 @@ class DbaseFileException implements Exception {
 /// Class for holding the information associated with a record. */
 class DbaseField {
   // Field Name
-  String fieldName;
+  late String fieldName;
 
   // Field Type (C N L D @ or M)
-  int fieldType; // char
+  int fieldType = 0; // char
 
   // Field Data Address offset from the start of the record.
-  int fieldDataAddress;
+  int fieldDataAddress = 0;
 
   // Length of the data in bytes
-  int fieldLength;
+  int fieldLength = 0;
 
   // Field decimal count in Binary, indicating where the decimal is
-  int decimalCount;
+  int decimalCount = 0;
 }
 
 /// Class to represent the header of a Dbase III file. Creation date: (5/15/2001 5:15:30 PM) */
@@ -163,16 +163,16 @@ class DbaseFileHeader {
   /// @param inFieldLength The length of the field, in bytes ( see above )
   /// @param inDecimalCount For numeric fields, the number of decimal places to track.
   /// @throws DbaseFileException If the type is not recognized.
-  void addColumn(String inFieldName, String inFieldType, int inFieldLength,
+  void addColumn(String? inFieldName, String inFieldType, int inFieldLength,
       int inDecimalCount) {
     if (inFieldLength <= 0) {
       throw DbaseFileException('field length <= 0');
     }
-    fields ??= [];
+    // fields ??= [];
 
     int tempLength = 1; // the length is used for the offset, and there is a
     // * for deleted as the first byte
-    List<DbaseField> tempFieldDescriptors = List(fields.length + 1);
+    List<DbaseField> tempFieldDescriptors = []; //List(fields.length + 1);
     for (int i = 0; i < fields.length; i++) {
       fields[i].fieldDataAddress = tempLength;
       tempLength = tempLength + fields[i].fieldLength;
@@ -183,9 +183,11 @@ class DbaseFileHeader {
     tempFieldDescriptors[fields.length].decimalCount = inDecimalCount;
     tempFieldDescriptors[fields.length].fieldDataAddress = tempLength;
 
+    inFieldName ??= 'NoName';
+
     // set the field name
-    String tempFieldName = inFieldName;
-    tempFieldName ??= 'NoName';
+    String? tempFieldName = inFieldName;
+    // tempFieldName ??= 'NoName';
     // Fix for GEOT-42, ArcExplorer will not handle field names > 10 chars
     // Sorry folks.
     if (tempFieldName.length > 10) {
@@ -289,7 +291,8 @@ class DbaseFileHeader {
   int removeColumn(String inFieldName) {
     var retCol = -1;
     var tempLength = 1;
-    var tempFieldDescriptors = List<DbaseField>(fields.length - 1);
+    var tempFieldDescriptors =
+        <DbaseField>[]; //List<DbaseField>(fields.length - 1);
     for (var i = 0, j = 0; i < fields.length; i++) {
       if (!StringUtilities.equalsIgnoreCase(
           inFieldName, fields[i].fieldName.trim())) {
@@ -301,9 +304,13 @@ class DbaseFileHeader {
               ' for removal');
           return retCol;
         }
-        tempFieldDescriptors[j] = fields[i];
+
+        tempFieldDescriptors.add(fields[i]);
         tempFieldDescriptors[j].fieldDataAddress = tempLength;
         tempLength += tempFieldDescriptors[j].fieldLength;
+        // tempFieldDescriptors[j] = fields[i];
+        // tempFieldDescriptors[j].fieldDataAddress = tempLength;
+        // tempLength += tempFieldDescriptors[j].fieldLength;
         // only increment j on non-matching fields
         j++;
       } else {
@@ -536,15 +543,18 @@ class DbaseFileHeader {
 
     // write the number of records in the datafile.
     // buffer.putInt(recordCnt);
-    buffer.addAll(ByteConversionUtilities.bytesFromInt32(recordCnt, endian:endian));
+    buffer.addAll(
+        ByteConversionUtilities.bytesFromInt32(recordCnt, endian: endian));
 
     // write the length of the header structure.
     // buffer.putShort((short) headerLength);
-    buffer.addAll(ByteConversionUtilities.bytesFromInt16(headerLength, endian:endian));
+    buffer.addAll(
+        ByteConversionUtilities.bytesFromInt16(headerLength, endian: endian));
 
     // write the length of a record
     // buffer.putShort((short) recordLength);
-    buffer.addAll(ByteConversionUtilities.bytesFromInt16(recordLength, endian:endian));
+    buffer.addAll(
+        ByteConversionUtilities.bytesFromInt16(recordLength, endian: endian));
 
     // // write the reserved bytes in the header
     // for (int i=0; i<20; i++) out.writeByteLE(0);

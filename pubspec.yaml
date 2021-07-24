@@ -6,20 +6,20 @@ repository: https://github.com/moovida/dart_shp
 issue_tracker: https://github.com/moovida/dart_shp/issues
 
 environment:
-  sdk: ">=2.7.0 <3.0.0"
+  sdk: ">=2.12.0 <3.0.0"
 
 dependencies:
-  path: ^1.7.0
+  path: ^1.8.0
   #BSD
-  dart_jts: ^0.1.0
+  dart_jts: ^0.2.0
   # BSD
   # timezone: ^0.5.7
   # BSD
-  characters: ^1.0.0
+  characters: ^1.1.0
   # BSD
   intl: ^0.17.0
 
-  dart_hydrologis_utils: ^0.5.4
+  dart_hydrologis_utils: ^0.6.0
     # path: ../dart_hydrologis_utils/
     # git:
     #   url: https://github.com/moovida/dart_hydrologis_utils.git

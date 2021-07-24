@@ -12,23 +12,23 @@ class SkipGeometry extends JTS.Point {
 class ShapefileFeatureReader {
   static final Geometry SKIP = SkipGeometry();
 
-  ShapefileReader shp;
+  late ShapefileReader shp;
 
-  DbaseFileReader dbf;
+  DbaseFileReader? dbf;
 
-  List<int> dbfindexes;
+  // List<int> dbfindexes;
 
-  Feature nextFeature;
+  Feature? nextFeature;
 
-  Envelope targetBBox;
+  Envelope? targetBBox;
 
   // StringBuffer idxBuffer;
 
   // int idxBaseLen;
-  DbaseFileHeader header;
-  int numFields;
+  DbaseFileHeader? header;
+  int numFields = 0;
 
-  ShapefileFeatureReader(File shpFile, {Charset charset}) {
+  ShapefileFeatureReader(File shpFile, {Charset? charset}) {
     String nameNoExt = FileUtilities.nameFromFile(shpFile.path, false);
 
     String parentFolder = FileUtilities.parentFolderFromFile(shpFile.path);
@@ -47,15 +47,21 @@ class ShapefileFeatureReader {
 
     charset ??= Charset();
     shp = ShapefileReader(FileReaderRandom(shpFile), shxReader);
-    dbf = DbaseFileReader(FileReaderRandom(File(dbfPath)), charset);
+
+    var file = File(dbfPath);
+    if (file.existsSync()) {
+      dbf = DbaseFileReader(FileReaderRandom(file), charset);
+    }
   }
 
   Future<void> open() async {
-    await dbf.open();
+    await dbf?.open();
     await shp.open();
 
-    header = dbf.getHeader();
-    numFields = header.getNumFields();
+    header = dbf?.getHeader();
+    if (header != null) {
+      numFields = header!.getNumFields();
+    }
     // idxBuffer = StringBuffer(schema.getTypeName());
     // idxBuffer.write('.');
     // idxBaseLen = idxBuffer.length;
@@ -101,7 +107,7 @@ class ShapefileFeatureReader {
 
   Future<Feature> next() async {
     if (await hasNext()) {
-      Feature result = nextFeature;
+      Feature result = nextFeature!;
       nextFeature = null;
       return result;
     } else {
@@ -114,7 +120,7 @@ class ShapefileFeatureReader {
     if (dbf == null) {
       return await shp.hasNext();
     } else {
-      bool dbfHasNext = dbf.hasNext();
+      bool dbfHasNext = dbf!.hasNext();
       bool shpHasNext = await shp.hasNext();
       if (dbfHasNext && shpHasNext) {
         return true;
@@ -128,26 +134,26 @@ class ShapefileFeatureReader {
 
   Future<bool> hasNext() async {
     while (nextFeature == null && await filesHaveMore()) {
-      Record record = await shp.nextRecord();
-      Geometry geometry = getGeometry(record, shp.buffer);
+      Record? record = await shp.nextRecord();
+      Geometry geometry = getGeometry(record!, shp.buffer);
       if (geometry != SKIP) {
         // also grab the dbf row
-        Row row;
-        if (dbf != null) {
-          row = await dbf.readRow();
-          if (row.isDeleted()) {
-            continue;
-          }
-        } else {
-          row = null;
+        Row? row;
+        // if (dbf != null) {
+        row = await dbf?.readRow();
+        if (row != null && row.isDeleted()) {
+          continue;
         }
+        // } else {
+        //   row = null;
+        // }
 
         nextFeature = await buildFeature(
             shp.recordNumber, geometry, row, record.envelope());
       } else {
-        if (dbf != null) {
-          dbf.skip();
-        }
+        // if (dbf != null) {
+        dbf!.skip();
+        // }
       }
     }
 
@@ -163,8 +169,8 @@ class ShapefileFeatureReader {
     // if (schema.getGeometryDescriptor() != null) {
     // ... if geometry is out of the target bbox, skip both geom and row
     if (targetBBox != null &&
-        !targetBBox.isNull() &&
-        !targetBBox.intersectsEnvelope(envelope)) {
+        !targetBBox!.isNull() &&
+        !targetBBox!.intersectsEnvelope(envelope)) {
       geometry = SKIP;
       // ... if the geometry is awfully small avoid reading it (unless it's a point)
       // } else if (simplificationDistance > 0
@@ -194,7 +200,7 @@ class ShapefileFeatureReader {
   }
 
   Future<Feature> buildFeature(
-      int number, Geometry geometry, Row row, Envelope envelope) async {
+      int number, Geometry geometry, Row? row, Envelope envelope) async {
     // if (dbfindexes != null) {
     //     for (int i = 0; i < dbfindexes.length; i++) {
     //         if (dbfindexes[i] == -1) {
@@ -217,7 +223,7 @@ class ShapefileFeatureReader {
     if (row != null) {
       for (var i = 0; i < numFields; i++) {
         var read = await row.read(i);
-        f.attributes[header.getFieldName(i)] = read;
+        f.attributes[header!.getFieldName(i)] = read;
       }
     }
     return f;
@@ -237,22 +243,22 @@ class ShapefileFeatureReader {
 
   void close() {
     try {
-      if (shp != null) {
-        shp.close();
-      }
+      // if (shp != null) {
+      shp.close();
+      // }
     } finally {
       try {
-        if (dbf != null) {
-          dbf.close();
-        }
+        // if (dbf != null) {
+        dbf?.close();
+        // }
       } finally {
         // try {
         //     if (fidReader != null) {
         //         fidReader.close();
         //     }
         // } finally {
-        shp = null;
-        dbf = null;
+        // shp = null;
+        // dbf = null;
         // }
       }
     }

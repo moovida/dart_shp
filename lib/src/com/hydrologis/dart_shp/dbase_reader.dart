@@ -64,32 +64,32 @@ class Row {
 ///
 /// @author Ian Schneider, Andrea Aaime
 class DbaseFileReader {
-  DbaseFileHeader header;
+  DbaseFileHeader? header;
 
-  List<int> bytes;
+  List<int>? bytes;
 
-  List<int> fieldTypes;
+  List<int>? fieldTypes;
 
-  List<int> fieldLengths;
+  List<int>? fieldLengths;
 
-  List<int> fieldOffsets;
+  List<int>? fieldOffsets;
 
   int cnt = 1;
 
   Endian endian = Endian.little;
 
-  Row row;
+  Row? row;
 
   int currentOffset = 0;
 
-  bool oneBytePerChar;
+  bool oneBytePerChar = false;
 
   final int MILLISECS_PER_DAY = 24 * 60 * 60 * 1000;
 
-  LByteBuffer buffer;
-  AFileReader afileReader;
-  Charset stringCharset;
-  TimeZones timeZone;
+  LByteBuffer? buffer;
+  AFileReader? afileReader;
+  Charset? stringCharset;
+  TimeZones? timeZone;
 
   DbaseFileReader(this.afileReader, [this.stringCharset, this.timeZone]);
 
@@ -98,33 +98,33 @@ class DbaseFileReader {
     // TimeZone calTimeZone = timeZone == null ? TimeZone.UTC : timeZone;
 
     header = DbaseFileHeader();
-    await header.readHeaderWithCharset(afileReader, stringCharset);
+    await header!.readHeaderWithCharset(afileReader!, stringCharset!);
 
-    buffer = LByteBuffer(header.getRecordLength());
-    await fill(buffer, afileReader);
-    buffer.flip();
+    buffer = LByteBuffer(header!.getRecordLength());
+    await fill(buffer!, afileReader!);
+    buffer!.flip();
 
-    currentOffset = header.getHeaderLength();
+    currentOffset = header!.getHeaderLength();
 
-    buffer.endian = Endian.little;
+    buffer!.endian = Endian.little;
 
     // Set up some buffers and lookups for efficiency
-    fieldTypes = List(header.getNumFields());
-    fieldLengths = List(header.getNumFields());
-    fieldOffsets = List(header.getNumFields());
-    for (var i = 0, ii = header.getNumFields(); i < ii; i++) {
-      fieldTypes[i] = header.getFieldType(i);
-      fieldLengths[i] = header.getFieldLength(i);
+    fieldTypes = List.filled(header!.getNumFields(), 0);
+    fieldLengths = List.filled(header!.getNumFields(), 0);
+    fieldOffsets = List.filled(header!.getNumFields(), 0);
+    for (var i = 0, ii = header!.getNumFields(); i < ii; i++) {
+      fieldTypes![i] = header!.getFieldType(i);
+      fieldLengths![i] = header!.getFieldLength(i);
       if (i > 0) {
-        fieldOffsets[i] = fieldOffsets[i - 1] + header.getFieldLength(i - 1);
+        fieldOffsets![i] = fieldOffsets![i - 1] + header!.getFieldLength(i - 1);
       } else {
-        fieldOffsets[i] = 0;
+        fieldOffsets![i] = 0;
       }
     }
     bytes = null; //List(header.getRecordLength() - 1);
 
     // check if we working with a latin-1 char Charset
-    final cname = stringCharset.charsetEncoding;
+    final cname = stringCharset!.charsetEncoding;
     oneBytePerChar = 'ISO-8859-1' == cname || 'US-ASCII' == cname;
 
     row = Row(fieldOffsets, header, readObject);
@@ -146,11 +146,11 @@ class DbaseFileReader {
   Future<void> bufferCheck() async {
     // remaining is less than record length
     // compact the remaining data and read again
-    if (buffer.remaining < header.getRecordLength()) {
-      currentOffset += buffer.position;
-      buffer.compact();
-      await fill(buffer, afileReader);
-      buffer.position = 0;
+    if (buffer!.remaining < header!.getRecordLength()) {
+      currentOffset += buffer!.position;
+      buffer!.compact();
+      await fill(buffer!, afileReader!);
+      buffer!.position = 0;
     }
   }
 
@@ -158,15 +158,15 @@ class DbaseFileReader {
   ///
   /// @return The header associated with this file or null if an error occurred.
   DbaseFileHeader getHeader() {
-    return header;
+    return header!;
   }
 
   /// Clean up all resources associated with this reader.<B>Highly recomended.</B>
   ///
   /// @ If an error occurs.
   void close() {
-    if (afileReader != null && afileReader.isOpen) {
-      afileReader.close();
+    if (afileReader != null && afileReader!.isOpen) {
+      afileReader!.close();
     }
 
     afileReader = null;
@@ -180,18 +180,20 @@ class DbaseFileReader {
   ///
   /// @return True if more records exist, false otherwise.
   bool hasNext() {
-    return cnt < header.getNumRecords() + 1;
+    return cnt < header!.getNumRecords() + 1;
   }
 
   /// Get the next record (entry). Will return a array of values.
   ///
   /// @ If an error occurs.
   /// @return A array of values.
-  Future<List<dynamic>> readEntry() async {
-    return await readEntryInto(List<dynamic>(header.getNumFields()));
+  Future<List<dynamic>?> readEntry() async {
+    List<dynamic> items = List.filled(header!.getNumFields(), null);
+    return await readEntryInto(items);
+    // return await readEntryInto(List<dynamic>(header!.getNumFields()));
   }
 
-  Future<Row> readRow() async {
+  Future<Row?> readRow() async {
     await read();
     return row;
   }
@@ -205,10 +207,11 @@ class DbaseFileReader {
       // bufferCheck();
 
       // read the deleted flag
-      final String tempDeleted = String.fromCharCode(buffer.getByte());
+      final String tempDeleted = String.fromCharCode(buffer!.getByte());
 
       // skip the next bytes
-      buffer.position = buffer.position + header.getRecordLength() - 1; // the
+      buffer!.position =
+          buffer!.position + header!.getRecordLength() - 1; // the
       // 1 is
       // for
       // the
@@ -231,22 +234,22 @@ class DbaseFileReader {
   /// @param offset The offset to start at
   /// @ If an error occurs.
   /// @return The same array passed in.
-  Future<List<dynamic>> readEntryWithOffset(
+  Future<List<dynamic>?> readEntryWithOffset(
       final List<dynamic> entry, final int offset) async {
-    if (entry.length - offset < header.getNumFields()) {
+    if (entry.length - offset < header!.getNumFields()) {
       throw IndexError(offset, entry);
     }
 
     await read();
-    if (row.deleted) {
+    if (row!.deleted) {
       return null;
     }
 
     // retrieve the record length
-    final numFields = header.getNumFields();
+    final numFields = header!.getNumFields();
 
     for (var j = 0; j < numFields; j++) {
-      var object = await readObject(fieldOffsets[j], j);
+      var object = await readObject(fieldOffsets![j], j);
       entry[j + offset] = object;
     }
 
@@ -261,15 +264,15 @@ class DbaseFileReader {
   /// @ If an error occurs.
   /// @return The value of the field
   Future<dynamic> readField(final int fieldNum) async {
-    return await readObject(fieldOffsets[fieldNum], fieldNum);
+    return await readObject(fieldOffsets![fieldNum], fieldNum);
   }
 
   /// Transfer, by bytes, the next record to the writer. */
   void transferTo(final DbaseFileWriter writer) {
     bufferCheck();
-    buffer.limit = buffer.position + header.getRecordLength();
-    writer.channel.putBuffer(buffer);
-    buffer.limit = buffer.capacity;
+    buffer!.limit = buffer!.position + header!.getRecordLength();
+    writer.channel.putBuffer(buffer!);
+    buffer!.limit = buffer!.capacity;
 
     cnt++;
   }
@@ -282,13 +285,14 @@ class DbaseFileReader {
       await bufferCheck();
 
       // read the deleted flag
-      final deleted = buffer.getByteChar(); //   (    char) buffer.get();
-      row.deleted = deleted == '*';
+      final deleted = buffer!.getByteChar(); //   (    char) buffer.get();
+      row!.deleted = deleted == '*';
 
       // bytes = await fileReader.get(header.getRecordLength() - 1);
-      buffer.limit = buffer.position + header.getRecordLength() - 1;
-      bytes = await buffer.get(header.getRecordLength() - 1); // SK: There is a side-effect here!!!
-      buffer.limit = buffer.capacity;
+      buffer!.limit = buffer!.position + header!.getRecordLength() - 1;
+      bytes = await buffer!.get(
+          header!.getRecordLength() - 1); // SK: There is a side-effect here!!!
+      buffer!.limit = buffer!.capacity;
 
       foundRecord = true;
     }
@@ -301,20 +305,20 @@ class DbaseFileReader {
   /// @param entry The array to copy into.
   /// @ If an error occurs.
   /// @return The same array passed in.
-  Future<List<dynamic>> readEntryInto(final List<dynamic> entry) async {
+  Future<List<dynamic>?> readEntryInto(final List<dynamic> entry) async {
     return await readEntryWithOffset(entry, 0);
   }
 
-  Future<dynamic> readObject(final int fieldOffset, final int fieldNum)  async {
-    final type = fieldTypes[fieldNum];
-    final fieldLen = fieldLengths[fieldNum];
+  Future<dynamic> readObject(final int fieldOffset, final int fieldNum) async {
+    final type = fieldTypes![fieldNum];
+    final fieldLen = fieldLengths![fieldNum];
     dynamic object;
     if (fieldLen > 0) {
       switch (String.fromCharCode(type)) {
         // (L)logical (T,t,F,f,Y,y,N,n)
         case 'l':
         case 'L':
-          final c = String.fromCharCode(bytes[fieldOffset]);
+          final c = String.fromCharCode(bytes![fieldOffset]);
           switch (c) {
             case 't':
             case 'T':
@@ -337,15 +341,15 @@ class DbaseFileReader {
         // (C)character (String)
         case 'c':
         case 'C':
-          if (bytes[fieldOffset] != NULL_CHAR.codeUnitAt(0)) {
+          if (bytes![fieldOffset] != NULL_CHAR.codeUnitAt(0)) {
             // var str = String.fromCharCode(bytes[fieldOffset]);
             // if (str != '\0') {
             // remember we need to skip trailing and leading spaces
             if (oneBytePerChar) {
-              object = fastParse(bytes, fieldOffset, fieldLen).trim();
+              object = fastParse(bytes!, fieldOffset, fieldLen).trim();
             } else {
-              var sublist = bytes.sublist(fieldOffset, fieldOffset + fieldLen);
-              var string = (await stringCharset.decode(sublist)).trim();
+              var sublist = bytes!.sublist(fieldOffset, fieldOffset + fieldLen);
+              var string = (await stringCharset!.decode(sublist)).trim();
               var characters = Characters(string);
 
               if (characters.endsWith(NULL_CHARACTERS)) {
@@ -365,13 +369,13 @@ class DbaseFileReader {
         case 'D':
           // If the first 8 characters are '0', this is a null date
           for (var i = 0; i < 8; i++) {
-            if (String.fromCharCode(bytes[fieldOffset + i]) != '0') {
+            if (String.fromCharCode(bytes![fieldOffset + i]) != '0') {
               try {
-                var tempString = fastParse(bytes, fieldOffset, 4);
+                var tempString = fastParse(bytes!, fieldOffset, 4);
                 final tempYear = int.parse(tempString);
-                tempString = fastParse(bytes, fieldOffset + 4, 2);
+                tempString = fastParse(bytes!, fieldOffset + 4, 2);
                 final tempMonth = int.parse(tempString);
-                tempString = fastParse(bytes, fieldOffset + 6, 2);
+                tempString = fastParse(bytes!, fieldOffset + 6, 2);
                 final tempDay = int.parse(tempString);
                 object = DateTime.utc(tempYear, tempMonth, tempDay);
               } catch (nfe) {
@@ -386,16 +390,16 @@ class DbaseFileReader {
           try {
             var timestampBytes = [
               // Time in millis, after reverse.
-              bytes[fieldOffset + 7], bytes[fieldOffset + 6],
-              bytes[fieldOffset + 5],
-              bytes[fieldOffset + 4]
+              bytes![fieldOffset + 7], bytes![fieldOffset + 6],
+              bytes![fieldOffset + 5],
+              bytes![fieldOffset + 4]
             ];
 
             var daysBytes = [
               // Days, after reverse.
-              bytes[fieldOffset + 3], bytes[fieldOffset + 2],
-              bytes[fieldOffset + 1],
-              bytes[fieldOffset]
+              bytes![fieldOffset + 3], bytes![fieldOffset + 2],
+              bytes![fieldOffset + 1],
+              bytes![fieldOffset]
             ];
 
             var data = Uint8List.fromList(timestampBytes);
@@ -415,11 +419,11 @@ class DbaseFileReader {
         case 'n':
         case 'N':
           // numbers that begin with '*' are considered null
-          if (String.fromCharCode(bytes[fieldOffset]) == '*') {
+          if (String.fromCharCode(bytes![fieldOffset]) == '*') {
             break;
           } else {
-            final string = fastParse(bytes, fieldOffset, fieldLen).trim();
-            var clazz = header.getFieldClass(fieldNum);
+            final string = fastParse(bytes!, fieldOffset, fieldLen).trim();
+            var clazz = header!.getFieldClass(fieldNum);
             if (clazz == int) {
               try {
                 object = int.parse(string);
@@ -446,9 +450,9 @@ class DbaseFileReader {
   }
 
   dynamic handleFloat(int fieldOffset, object, int fieldLen) {
-    if (String.fromCharCode(bytes[fieldOffset]) != '*') {
+    if (String.fromCharCode(bytes![fieldOffset]) != '*') {
       try {
-        object = double.parse(fastParse(bytes, fieldOffset, fieldLen));
+        object = double.parse(fastParse(bytes!, fieldOffset, fieldLen));
       } catch (e) {
         // okay, now whatever we got was truly indigestible.
         object = null;
@@ -463,7 +467,7 @@ class DbaseFileReader {
       final List<int> bytes, final int fieldOffset, final int fieldLen) {
     // faster reading path, the decoder is for some reason slower,
     // probably because it has to make extra checks to support multibyte chars
-    final chars = List<int>(fieldLen);
+    final chars = List.filled(fieldLen, 0); //  List<int>(fieldLen);
     for (var i = 0; i < fieldLen; i++) {
       // force the byte to a positive integer interpretation before casting to char
       chars[i] = (0x00FF & bytes[fieldOffset + i]);

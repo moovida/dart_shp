@@ -8,21 +8,17 @@ part of dart_shp;
 class PolygonHandler extends ShapeHandler {
   GeometryFactory geometryFactory;
 
-  ShapeType shapeType;
+  late ShapeType shapeType;
 
-  PolygonHandler(GeometryFactory gf) {
+  PolygonHandler(this.geometryFactory) {
     shapeType = ShapeType.POLYGON;
-    geometryFactory = gf;
   }
 
-  PolygonHandler.withType(ShapeType type, GeometryFactory gf) {
-    if (!type.isPolygonType()) {
+  PolygonHandler.withType(this.shapeType, this.geometryFactory) {
+    if (!shapeType.isPolygonType()) {
       throw ShapefileException(
           "PolygonHandler constructor - expected type to be 5, 15, or 25.");
     }
-
-    shapeType = type;
-    geometryFactory = gf;
   }
 
   // returns true if testPoint is a point in the pointList list.
@@ -61,7 +57,7 @@ class PolygonHandler extends ShapeHandler {
     int nrings = 0;
 
     for (int t = 0; t < multi.getNumGeometries(); t++) {
-      Polygon p = multi.getGeometryN(t);
+      Polygon p = multi.getGeometryN(t) as Polygon;
       nrings = nrings + 1 + p.getNumInteriorRing();
     }
 
@@ -87,20 +83,18 @@ class PolygonHandler extends ShapeHandler {
   }
 
   @override
-  dynamic read(LByteBuffer buffer, ShapeType type, bool flatFeature) {
+  dynamic read(LByteBuffer buffer, ShapeType? type, bool flatFeature) {
     if (type == ShapeType.NULL) {
       return createNull();
     }
     // bounds
     buffer.position = buffer.position + 4 * 8;
 
-    List<int> partOffsets;
-
     int numParts = buffer.getInt32();
     int numPoints = buffer.getInt32();
     int dimensions = (shapeType == ShapeType.POLYGONZ) && !flatFeature ? 3 : 2;
 
-    partOffsets = List(numParts);
+    List<int> partOffsets = List.filled(numParts, 0);
 
     for (int i = 0; i < numParts; i++) {
       partOffsets[i] = buffer.getInt32();
@@ -237,7 +231,7 @@ class PolygonHandler extends ShapeHandler {
           numPoints, dimensions);
     }
     // DoubleBuffer dbuffer = buffer.asDoubleBuffer();
-    List<double> ordinates = List(numPoints * 2);
+    List<double> ordinates = List.filled(numPoints * 2, 0.0);
     for (var i = 0; i < ordinates.length; i++) {
       ordinates[i] = buffer.getDouble64();
     }
@@ -285,17 +279,18 @@ class PolygonHandler extends ShapeHandler {
 
     // if we have shells, lets use them
     if (shells.isNotEmpty) {
-      polygons = List(shells.length);
+      polygons = []; // List(shells.length);
       // oh, this is a bad record with only holes
     } else {
-      polygons = List(holes.length);
+      polygons = []; // List(holes.length);
     }
 
     // this will do nothing for the "only holes case"
     for (int i = 0; i < shells.length; i++) {
       LinearRing shell = shells[i];
       List<LinearRing> holesForShell = holesForShells[i];
-      polygons[i] = geometryFactory.createPolygon(shell, holesForShell);
+      polygons.add(geometryFactory.createPolygon(shell, holesForShell));
+      // polygons[i] = geometryFactory.createPolygon(shell, holesForShell);
     }
 
     // this will take care of the "only holes case"
@@ -303,7 +298,8 @@ class PolygonHandler extends ShapeHandler {
     if (shells.isEmpty) {
       for (int i = 0, ii = holes.length; i < ii; i++) {
         LinearRing hole = holes[i];
-        polygons[i] = geometryFactory.createPolygon(hole, null);
+        polygons.add(geometryFactory.createPolygon(hole, null));
+        // polygons[i] = geometryFactory.createPolygon(hole, null);
       }
     }
 
@@ -322,8 +318,8 @@ class PolygonHandler extends ShapeHandler {
     // find homes
     for (int i = 0; i < holes.length; i++) {
       LinearRing testRing = holes[i];
-      LinearRing minShell;
-      Envelope minEnv;
+      LinearRing? minShell;
+      Envelope? minEnv;
       Envelope testEnv = testRing.getEnvelopeInternal();
       Coordinate testPt = testRing.getCoordinateN(0);
       LinearRing tryRing;
@@ -348,7 +344,7 @@ class PolygonHandler extends ShapeHandler {
         // check if this new containing ring is smaller than the current
         // minimum ring
         if (isContained) {
-          if ((minShell == null) || minEnv.containsEnvelope(tryEnv)) {
+          if ((minShell == null) || minEnv!.containsEnvelope(tryEnv)) {
             minShell = tryRing;
           }
         }
@@ -386,7 +382,8 @@ class PolygonHandler extends ShapeHandler {
     if (geometry is MultiPolygon) {
       multi = geometry;
     } else {
-      multi = geometryFactory.createMultiPolygon(<Polygon>[geometry]);
+      multi =
+          geometryFactory.createMultiPolygon(<Polygon>[geometry as Polygon]);
     }
 
     Envelope box = multi.getEnvelopeInternal();
@@ -398,7 +395,7 @@ class PolygonHandler extends ShapeHandler {
     // need to find the total number of rings and points
     List<CoordinateSequence> coordinates = [];
     for (int t = 0; t < multi.getNumGeometries(); t++) {
-      Polygon p = multi.getGeometryN(t);
+      Polygon p = multi.getGeometryN(t) as Polygon;
       coordinates.add(p.getExteriorRing().getCoordinateSequence());
       for (int ringN = 0; ringN < p.getNumInteriorRing(); ringN++) {
         coordinates.add(p.getInteriorRingN(ringN).getCoordinateSequence());

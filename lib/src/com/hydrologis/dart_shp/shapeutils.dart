@@ -1,9 +1,9 @@
 part of dart_shp;
 
 class Feature {
-  Geometry geometry;
+  Geometry? geometry;
 
-  int fid;
+  int? fid;
 
   Map<String, dynamic> attributes = {};
 
@@ -21,7 +21,7 @@ class Feature {
 /// Thrown when an error relating to the shapefile occurs. */
 class ShapefileException implements Exception {
   String msg;
-  Exception cause;
+  Exception? cause;
 
   ShapefileException(this.msg);
 
@@ -241,7 +241,7 @@ abstract class ShapeHandler {
   ///
   /// @param buffer The ByteBuffer to read from.
   /// @return A geometry object.
-  dynamic read(LByteBuffer buffer, ShapeType type, bool flatGeometry);
+  dynamic read(LByteBuffer buffer, ShapeType? type, bool flatGeometry);
 
   /// Write the geometry into the ByteBuffer. The position, byteOrder, and limit are all set. The
   /// handler is not responsible for writing the record or shape type integer.
@@ -395,7 +395,7 @@ class ShapeType {
   ///
   /// @throws ShapefileException If the ShapeType is bogus.
   /// @return The correct handler for this ShapeType. Returns a new one.
-  ShapeHandler getShapeHandler(GeometryFactory gf) {
+  ShapeHandler? getShapeHandler(GeometryFactory gf) {
     switch (id) {
       case 1:
       case 11:
