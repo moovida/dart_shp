@@ -176,9 +176,11 @@ class DbaseFileHeader {
     for (int i = 0; i < fields.length; i++) {
       fields[i].fieldDataAddress = tempLength;
       tempLength = tempLength + fields[i].fieldLength;
-      tempFieldDescriptors[i] = fields[i];
+      tempFieldDescriptors.add(fields[i]);
+      // tempFieldDescriptors[i] = fields[i];
     }
-    tempFieldDescriptors[fields.length] = DbaseField();
+    tempFieldDescriptors.add(DbaseField());
+    // tempFieldDescriptors[fields.length] = DbaseField();
     tempFieldDescriptors[fields.length].fieldLength = inFieldLength;
     tempFieldDescriptors[fields.length].decimalCount = inDecimalCount;
     tempFieldDescriptors[fields.length].fieldDataAddress = tempLength;

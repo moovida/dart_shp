@@ -242,7 +242,7 @@ void main() async {
     */
       var dbfReader = await openDbf(nullsDbf);
 
-      var records = <int, double>{};
+      var records = <int, double?>{};
       while (dbfReader.hasNext()) {
         final List<dynamic>? fields = await dbfReader.readEntry();
         records[fields![0]] = fields[1];
