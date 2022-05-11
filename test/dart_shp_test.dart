@@ -481,6 +481,149 @@ void main() async {
 
       reader.close();
     });
+
+    test('writeTestPoints', () async {
+      var id2Coor = [
+        Coordinate(0.100, 0.300),
+        Coordinate(0.200, 0.100),
+        Coordinate(0.300, 0.200),
+      ];
+
+      List<Geometry> geoms = [];
+      id2Coor.forEach((element) {
+        geoms.add(GeometryFactory.defaultPrecision().createPoint(element));
+      });
+
+      var shpTemp = FileUtilities.getTmpFile('shp');
+      var shxTemp = File(shpTemp.path.replaceAll('.shp', '.shx'));
+      var dbfTemp = File(shpTemp.path.replaceAll('.shp', '.dbf'));
+      var shpWriter = FileWriter(shpTemp);
+      var shxWriter = FileWriter(shxTemp);
+      var dbfWriter = FileWriter(dbfTemp);
+
+      var writer =
+          ShapefileWriter(geoms, ShapeType.POINT, shpWriter, shxWriter);
+      await writer.write();
+      writer.close();
+
+      DbaseFileHeader header = DbaseFileHeader();
+      header.addColumn('ID', 'C', 200, 0);
+
+      header.setNumRecords(3);
+
+      DbaseFileWriter dbf = DbaseFileWriter(header, dbfWriter);
+      await dbf.open();
+      for (int i = 0; i < header.getNumRecords(); i++) {
+        await dbf.writeRecord([i.toString()]);
+      }
+      dbf.close();
+
+      var reader = ShapefileFeatureReader(shpTemp);
+      await reader.open();
+      await reader.next();
+      await reader.next();
+      var feature = await reader.next();
+      var pt = feature.geometry as Point;
+      assertEquals(pt.getX(), 0.3);
+      assertEquals(pt.getY(), 0.2);
+
+      print(shpTemp.path);
+    });
+
+    test('writeTestPolygons', () async {
+      List<Coordinate> id2Coor = [
+        Coordinate(0.100, 0.300),
+        Coordinate(0.300, 0.300),
+        Coordinate(0.300, 0.200),
+        Coordinate(0.100, 0.300),
+      ];
+
+      var ring = GeometryFactory.defaultPrecision()
+          .createLinearRing(List<Coordinate>.from(id2Coor));
+
+      List<Geometry> geoms = [];
+      geoms.add(GeometryFactory.defaultPrecision().createPolygonFromRing(ring));
+
+      var shpTemp = FileUtilities.getTmpFile('shp');
+      var shxTemp = File(shpTemp.path.replaceAll('.shp', '.shx'));
+      var dbfTemp = File(shpTemp.path.replaceAll('.shp', '.dbf'));
+      var shpWriter = FileWriter(shpTemp);
+      var shxWriter = FileWriter(shxTemp);
+      var dbfWriter = FileWriter(dbfTemp);
+
+      var writer =
+          ShapefileWriter(geoms, ShapeType.POLYGON, shpWriter, shxWriter);
+      await writer.write();
+      writer.close();
+
+      DbaseFileHeader header = DbaseFileHeader();
+      header.addColumn('ID', 'C', 200, 0);
+
+      header.setNumRecords(3);
+
+      DbaseFileWriter dbf = DbaseFileWriter(header, dbfWriter);
+      await dbf.open();
+      for (int i = 0; i < header.getNumRecords(); i++) {
+        await dbf.writeRecord([i.toString()]);
+      }
+      dbf.close();
+
+      var reader = ShapefileFeatureReader(shpTemp);
+      await reader.open();
+      var feature = await reader.next();
+      var geom = feature.geometry;
+      assertEquals(geom!.getArea(), geoms[0].getArea());
+
+      print(shpTemp);
+      print(geoms[0].getArea());
+    });
+
+    test('writeTestPolylines', () async {
+      List<Coordinate> id2Coor = [
+        Coordinate(0.100, 0.300),
+        Coordinate(0.300, 0.300),
+        Coordinate(0.300, 0.200),
+        Coordinate(0.100, 0.300),
+      ];
+
+      var ring = GeometryFactory.defaultPrecision()
+          .createLinearRing(List<Coordinate>.from(id2Coor));
+
+      List<Geometry> geoms = [];
+      geoms.add(GeometryFactory.defaultPrecision().createPolygonFromRing(ring));
+
+      var shpTemp = FileUtilities.getTmpFile('shp');
+      var shxTemp = File(shpTemp.path.replaceAll('.shp', '.shx'));
+      var dbfTemp = File(shpTemp.path.replaceAll('.shp', '.dbf'));
+      var shpWriter = FileWriter(shpTemp);
+      var shxWriter = FileWriter(shxTemp);
+      var dbfWriter = FileWriter(dbfTemp);
+
+      var writer = ShapefileWriter(geoms, ShapeType.ARC, shpWriter, shxWriter);
+      await writer.write();
+      writer.close();
+      
+      DbaseFileHeader header = DbaseFileHeader();
+      header.addColumn('ID', 'C', 200, 0);
+
+      header.setNumRecords(3);
+
+      DbaseFileWriter dbf = DbaseFileWriter(header, dbfWriter);
+      await dbf.open();
+      for (int i = 0; i < header.getNumRecords(); i++) {
+        await dbf.writeRecord([i.toString()]);
+      }
+      dbf.close();
+
+      var reader = ShapefileFeatureReader(shpTemp);
+      await reader.open();
+      var feature = await reader.next();
+      var geom = feature.geometry;
+      assertEquals(geom!.getLength(), geoms[0].getLength());
+
+      print(shpTemp);
+      print(geoms[0].getLength());
+    });
   });
 }
 

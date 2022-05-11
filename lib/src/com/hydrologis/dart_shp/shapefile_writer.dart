@@ -13,10 +13,13 @@ class ShapefileWriter {
     var TYPE = geometryType;
     ShapeWriter? writer;
     if (TYPE == ShapeType.POLYGON) {
-      writer = PolyWriter(geometries);
+      writer = PolyWriter(geometries, ShapeType.POLYGON);
       await writer.write(shpChannel, shxChannel);
     } else if (TYPE == ShapeType.ARC) {
-      writer = PolyWriter(geometries);
+      writer = PolyWriter(geometries, ShapeType.ARC);
+      await writer.write(shpChannel, shxChannel);
+    } else if (TYPE == ShapeType.POINT) {
+      writer = PointWriter(geometries, ShapeType.POINT);
       await writer.write(shpChannel, shxChannel);
     }
   }
@@ -33,7 +36,7 @@ class ShapefileWriter {
 }
 
 class PolyWriter extends ShapeWriter {
-  PolyWriter(List<Geometry> geometries) : super(geometries);
+  PolyWriter(List<Geometry> geometries, ShapeType type) : super(geometries, type);
 
   @override
   write(shpChannel, shxChannel) async {
@@ -56,11 +59,11 @@ class PolyWriter extends ShapeWriter {
 
     shpView.setInt32(0, 9994);
     shpView.setInt32(28, 1000, Endian.little);
-    shpView.setInt32(32, ShapeType.POLYGON.id, Endian.little);
+    shpView.setInt32(32, type!.id, Endian.little);
 
     shxView.setInt32(0, 9994);
     shxView.setInt32(28, 1000, Endian.little);
-    shxView.setInt32(32, ShapeType.POLYGON.id, Endian.little);
+    shxView.setInt32(32, type!.id, Endian.little);
 
     var extent = [999999999.0, 999999999.0, 0.0, 0.0]; // xmin, ymin, xmax, ymax
     for (var i = 0; i < geometries!.length; i++) {
@@ -104,7 +107,7 @@ class PolyWriter extends ShapeWriter {
       shpView.setInt32(shpI + 4, ((contentLength - headerLength) / 2).toInt()); // length
 
       shpView.setInt32(
-          shpI + 8, ShapeType.POLYGON.id, Endian.little);
+          shpI + 8, type!.id, Endian.little);
 
       // EXTENT
       shpView.setFloat64(
@@ -199,7 +202,6 @@ class PolyWriter extends ShapeWriter {
     return noParts;
   }
 
-  @override
   int shpLength() {
     var coordsCount = 0;
 
@@ -218,12 +220,10 @@ class PolyWriter extends ShapeWriter {
         .toInt();
   }
 
-  @override
   int shxLength() {
     return geometries!.length * 8;
   }
 
-  @override
   List<Coordinate>? justCoords(geometry) {
     List<Coordinate> coords = [];
 
@@ -242,23 +242,99 @@ class PolyWriter extends ShapeWriter {
   }
 }
 
+class PointWriter extends ShapeWriter {
+  PointWriter(List<Geometry> geometries, ShapeType type) : super(geometries, type);
+
+  @override
+  write(shpChannel, shxChannel) async {
+    var shpI = 100;
+    var shxI = 100;
+    var shxOffset = 100;
+
+    var contentLength = 28; // 8 header, 20 content
+
+    int shpLength = 100 + geometries!.length * 28;
+    int shxLength = 100 + geometries!.length * 28;
+    var shpBuffer = Uint8List(shpLength);
+    var shpView = ByteData.view(shpBuffer.buffer);
+    var shxBuffer = Uint8List(shxLength);
+    var shxView = ByteData.view(shxBuffer.buffer);
+
+    shpView.setInt32(0, 9994);
+    shpView.setInt32(28, 1000, Endian.little);
+    shpView.setInt32(32, type!.id, Endian.little);
+
+    shxView.setInt32(0, 9994);
+    shxView.setInt32(28, 1000, Endian.little);
+    shxView.setInt32(32, type!.id, Endian.little);
+
+    var extent = [999999999.0, 999999999.0, 0.0, 0.0]; // xmin, ymin, xmax, ymax
+    for (var i = 0; i < geometries!.length; i++) {
+      var geometry = geometries![i] as Point;
+
+      // enlargeExtent
+      if (extent[0] > geometry.getX()) {
+        extent[0] = geometry.getX();
+      }
+
+      if (extent[1] > geometry.getY()) {
+        extent[1] = geometry.getY();
+      }
+
+      if (extent[2] < geometry.getX()) {
+        extent[2] = geometry.getX();
+      }
+
+      if (extent[3] < geometry.getY()) {
+        extent[3] = geometry.getY();
+      }
+
+      // HEADER
+      // 4 record number
+      // 4 content length in 16-bit words (20/2)
+      shpView.setInt32(shpI, i + 1);
+      shpView.setInt32(shpI + 4, 10);
+
+      // record
+      // (8 + 8) + 4 = 20 content length
+      shpView.setInt32(shpI + 8, 1, Endian.little); // POINT=1
+      shpView.setFloat64(shpI + 12, geometry.getX(), Endian.little); // X
+      shpView.setFloat64(shpI + 20, geometry.getY(), Endian.little); // Y
+
+      // index
+      shxView.setInt32(shxI, (shxOffset / 2).toInt()); // length in 16-bit words
+      shxView.setInt32(shxI + 4, 10);
+
+      shxI += 8;
+      shpI += contentLength;
+      shxOffset += contentLength;
+    }
+
+    shpView.setInt32(24, (shpLength / 2).toInt());
+    shxView.setInt32(24, (50 + geometries!.length * 4));
+
+    shpView.setFloat64(36, extent[0], Endian.little);
+    shpView.setFloat64(44, extent[1], Endian.little);
+    shpView.setFloat64(52, extent[2], Endian.little);
+    shpView.setFloat64(60, extent[3], Endian.little);
+
+    shxView.setFloat64(36, extent[0], Endian.little);
+    shxView.setFloat64(44, extent[1], Endian.little);
+    shxView.setFloat64(52, extent[2], Endian.little);
+    shxView.setFloat64(60, extent[3], Endian.little);
+
+    await shpChannel.put(shpBuffer);
+    await shxChannel.put(shxBuffer);
+  }
+}
+
 class ShapeWriter {
   List<Geometry>? geometries;
+  ShapeType? type;
 
-  ShapeWriter(List<Geometry> geometries) {
+  ShapeWriter(List<Geometry> geometries, ShapeType type) {
     this.geometries = geometries;
-  }
-
-  List<Coordinate>? justCoords(geometry) {
-    return null;
-  }
-
-  int shpLength() {
-    return 0;
-  }
-
-  int shxLength() {
-    return 0;
+    this.type = type;
   }
 
   write(shpChannel, shxChannel) async {}
