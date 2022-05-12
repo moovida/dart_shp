@@ -1,4 +1,8 @@
 
+## 1.0.0
+
+- addition of shpaefile writing by github user listeng
+
 ## 0.4.0
 
 - migration to null safety
