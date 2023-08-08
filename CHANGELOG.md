@@ -1,7 +1,11 @@
 
+## 1.1.0
+
+- Move features to utils lib to have common with geopackage/postgis.
+
 ## 1.0.0
 
-- addition of shpaefile writing by github user listeng
+- addition of shapefile writing by github user listeng
 
 ## 0.4.0
 
