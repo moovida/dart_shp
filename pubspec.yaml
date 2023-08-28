@@ -1,6 +1,6 @@
 name: dart_shp
 description: An shapefile reader/writer for dart.
-version: 1.1.0+1
+version: 1.1.0+2
 homepage: https://www.hydrologis.com
 repository: https://github.com/moovida/dart_shp
 issue_tracker: https://github.com/moovida/dart_shp/issues
@@ -17,9 +17,9 @@ dependencies:
   # BSD
   characters: ^1.3.0
   # BSD
-  intl: '>=0.16.1 <=0.18.0'
+  intl: '>=0.16.1'
 
-  dart_hydrologis_utils: ^0.8.0
+  dart_hydrologis_utils: ^0.8.1
     # path: ../dart_hydrologis_utils/
     # git:
     #   url: https://github.com/moovida/dart_hydrologis_utils.git
