@@ -128,7 +128,7 @@ class Record {
 class ShapefileReader {
   /// Used to mark the current shape is not known, either because someone moved the reader to a
   /// specific byte offset manually, or because the .shx could not be opened
-  static final int UNKNOWN = -9223372036854775807;
+  static final int UNKNOWN = -9223372036854775808;
 
   ShapeHandler? handler;
 
@@ -597,7 +597,7 @@ class ShapefileReader {
   /// @return the number of non-null records in the shapefile
   Future<int> getCount(int count) async {
     try {
-      if (channel == null) return -1;
+      // if (channel == null) return -1;
       count = 0;
       int offset = currentOffset;
       try {
