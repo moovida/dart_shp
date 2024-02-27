@@ -36,26 +36,28 @@ class ShapefileWriter {
 }
 
 class PolyWriter extends ShapeWriter {
-  PolyWriter(List<Geometry> geometries, ShapeType type) : super(geometries, type);
+  PolyWriter(List<Geometry> geometries, ShapeType type)
+      : super(geometries, type);
 
   @override
-  write(shpChannel, shxChannel) async {
+  void write(shpChannel, shxChannel, {verbose = false}) async {
     var shpI = 100;
     var shxI = 100;
     var shxOffset = 100;
 
     int parts = this.parts();
-    int shpLength =
-        100 + (parts - geometries!.length) * 4 + this.shpLength();
+    int shpLength = 100 + (parts - geometries!.length) * 4 + this.shpLength();
     int shxLength = 100 + this.shxLength();
     var shpBuffer = Uint8List(shpLength);
     var shpView = ByteData.view(shpBuffer.buffer);
     var shxBuffer = Uint8List(shxLength);
     var shxView = ByteData.view(shxBuffer.buffer);
 
-    print('parts: $parts');
-    print('geometries!.length: ${geometries!.length}');
-    print('this.shpLength(): ${this.shpLength()}');
+    if (verbose) {
+      print('parts: $parts');
+      print('geometries!.length: ${geometries!.length}');
+      print('this.shpLength(): ${this.shpLength()}');
+    }
 
     shpView.setInt32(0, 9994);
     shpView.setInt32(28, 1000, Endian.little);
@@ -91,23 +93,25 @@ class PolyWriter extends ShapeWriter {
       var noParts = geometryParts(geometry);
       var headerLength = 8;
       var contentLength = (flattened!.length * 16) + 52 + noParts * 4;
-
-      print('noParts: ${noParts}');
-      print('flattened: ${flattened.length}');
-      print('extX: ${geometry.getEnvelopeInternal().getMinX()}');
-      print('extY: ${geometry.getEnvelopeInternal().getMinY()}');
+      if (verbose) {
+        print('noParts: ${noParts}');
+        print('flattened: ${flattened.length}');
+        print('extX: ${geometry.getEnvelopeInternal().getMinX()}');
+        print('extY: ${geometry.getEnvelopeInternal().getMinY()}');
+      }
 
       shxView.setInt32(shxI, (shxOffset / 2).toInt()); // offset
-      shxView.setInt32(shxI + 4, ((contentLength - headerLength) / 2).toInt()); // offset length
+      shxView.setInt32(shxI + 4,
+          ((contentLength - headerLength) / 2).toInt()); // offset length
 
       shxI += 8;
       shxOffset += contentLength;
 
       shpView.setInt32(shpI, i + 1); // record number
-      shpView.setInt32(shpI + 4, ((contentLength - headerLength) / 2).toInt()); // length
-
       shpView.setInt32(
-          shpI + 8, type!.id, Endian.little);
+          shpI + 4, ((contentLength - headerLength) / 2).toInt()); // length
+
+      shpView.setInt32(shpI + 8, type!.id, Endian.little);
 
       // EXTENT
       shpView.setFloat64(
@@ -243,7 +247,8 @@ class PolyWriter extends ShapeWriter {
 }
 
 class PointWriter extends ShapeWriter {
-  PointWriter(List<Geometry> geometries, ShapeType type) : super(geometries, type);
+  PointWriter(List<Geometry> geometries, ShapeType type)
+      : super(geometries, type);
 
   @override
   write(shpChannel, shxChannel) async {
