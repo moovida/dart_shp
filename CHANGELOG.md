@@ -1,4 +1,8 @@
 
+## 1.1.1
+
+- add example for pub (sheldoncoup)
+
 ## 1.1.0
 
 - Move features to utils lib to have common with geopackage/postgis.
