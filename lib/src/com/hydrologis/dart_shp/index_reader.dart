@@ -108,7 +108,14 @@ class IndexFile {
         lastIndex == -1) {
       ShpLogger().v("Filling buffer...");
       channelOffset = pos;
-      await (afileReader as FileReaderRandom).setPosition(pos);
+      if (afileReader is FileReaderRandom) {
+        await (afileReader as FileReaderRandom).setPosition(pos);
+      } else if (afileReader is PlatformFileReader) {
+        await (afileReader as PlatformFileReader).setPosition(pos);
+      } else {
+        throw Exception(
+            "afileReader of type AFileReader does not have a method 'setPosition'");
+      }
       buf.clear();
       await afileReader.readIntoBuffer(buf);
       buf.flip();

@@ -1,8 +1,11 @@
 library dart_shp;
 
+import 'dart:math';
 import 'dart:typed_data';
 import 'dart:io';
+import 'package:collection/collection.dart';
 import 'package:dart_hydrologis_utils/dart_hydrologis_utils.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'dart:math' as math;
 import 'package:characters/characters.dart';
