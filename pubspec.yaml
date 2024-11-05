@@ -19,14 +19,6 @@ dependencies:
   # BSD
   intl: '>=0.16.1'
 
-  # For importing files.
-  # https://pub.dev/packages/file_picker.
-  file_picker: ^5.3.2
-
-  # Collection utilities.
-  # https://pub.dev/packages/collection.
-  collection: ^1.17.1
-
   dart_hydrologis_utils: '>=0.8.1'
     # path: ../dart_hydrologis_utils/
     # git:

@@ -12,10 +12,6 @@ class SkipGeometry extends JTS.Point {
 class ShapefileFeatureReader {
   static final Geometry SKIP = SkipGeometry();
 
-  static final String shxExtension = "shx";
-  static final String shpExtension = "shp";
-  static final String dbfExtension = "dbf";
-
   late ShapefileReader shp;
 
   DbaseFileReader? dbf;
@@ -59,37 +55,24 @@ class ShapefileFeatureReader {
   }
 
   /// Constructor to support [PlatformFile]s including web.
-  ShapefileFeatureReader.fromFilePickerResult(
-      FilePickerResult filePickerResult) {
-    PlatformFile? shxPlatformFile = filePickerResult.files.firstWhereOrNull(
-        (file) =>
-            (file.bytes?.isNotEmpty ?? false) &&
-            (file.extension == shxExtension));
-    PlatformFile? shpPlatformFile = filePickerResult.files.firstWhereOrNull(
-        (file) =>
-            (file.bytes?.isNotEmpty ?? false) &&
-            file.extension == shpExtension);
-    PlatformFile? dbfPlatformFile = filePickerResult.files.firstWhereOrNull(
-        (file) =>
-            (file.bytes?.isNotEmpty ?? false) &&
-            file.extension == dbfExtension);
+  ShapefileFeatureReader.fromFilePickerResult({
+    required Uint8List shpBytes,
+    Uint8List? dbfBytes,
+    Uint8List? shxBytes,
+  }) {
 
-    PlatformFileReader? shxWebFileReader = shxPlatformFile == null
+    PlatformFileReader? shxWebFileReader = shxBytes == null
         ? null
-        : PlatformFileReader(fileBytes: shxPlatformFile.bytes!.toList());
-
-    if (shpPlatformFile == null) {
-      throw Exception(".shp file empty or not found.");
-    }
+        : PlatformFileReader(fileBytes: shxBytes);
 
     PlatformFileReader shpWebFileReader =
-        PlatformFileReader(fileBytes: shpPlatformFile.bytes!.toList());
+        PlatformFileReader(fileBytes: shpBytes);
 
     shp = ShapefileReader(shpWebFileReader, shxWebFileReader);
 
-    PlatformFileReader? dbfWebFileReader = dbfPlatformFile == null
+    PlatformFileReader? dbfWebFileReader = dbfBytes == null
         ? null
-        : PlatformFileReader(fileBytes: dbfPlatformFile.bytes!.toList());
+        : PlatformFileReader(fileBytes: dbfBytes);
 
     dbf = dbfWebFileReader == null ? null : DbaseFileReader(dbfWebFileReader);
   }
