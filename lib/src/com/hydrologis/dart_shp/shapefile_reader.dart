@@ -179,7 +179,7 @@ class ShapefileReader {
 
   Future<void> open() async {
     randomAccessEnabled = shxChannel != null &&
-        ((shxChannel is FileReaderRandom) || (shxChannel is PlatformFileReader));
+        ((shxChannel is FileReaderRandom) || (shxChannel is ByteReader));
     if (!onlyRandomAccess) {
       try {
         shxReader = IndexFile(shxChannel!);

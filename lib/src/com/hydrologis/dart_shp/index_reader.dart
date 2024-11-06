@@ -110,8 +110,8 @@ class IndexFile {
       channelOffset = pos;
       if (afileReader is FileReaderRandom) {
         await (afileReader as FileReaderRandom).setPosition(pos);
-      } else if (afileReader is PlatformFileReader) {
-        await (afileReader as PlatformFileReader).setPosition(pos);
+      } else if (afileReader is ByteReader) {
+        await (afileReader as ByteReader).setPosition(pos);
       } else {
         throw Exception(
             "afileReader of type AFileReader does not have a method 'setPosition'");

@@ -54,25 +54,25 @@ class ShapefileFeatureReader {
     }
   }
 
-  /// Constructor to support [PlatformFile]s including web.
-  ShapefileFeatureReader.fromFilePickerResult({
+  /// Constructor to support raw bytes.
+  ShapefileFeatureReader.fromBytes({
     required Uint8List shpBytes,
     Uint8List? dbfBytes,
     Uint8List? shxBytes,
   }) {
 
-    PlatformFileReader? shxWebFileReader = shxBytes == null
+    ByteReader? shxWebFileReader = shxBytes == null
         ? null
-        : PlatformFileReader(fileBytes: shxBytes);
+        : ByteReader(fileBytes: shxBytes);
 
-    PlatformFileReader shpWebFileReader =
-        PlatformFileReader(fileBytes: shpBytes);
+    ByteReader shpWebFileReader =
+        ByteReader(fileBytes: shpBytes);
 
     shp = ShapefileReader(shpWebFileReader, shxWebFileReader);
 
-    PlatformFileReader? dbfWebFileReader = dbfBytes == null
+    ByteReader? dbfWebFileReader = dbfBytes == null
         ? null
-        : PlatformFileReader(fileBytes: dbfBytes);
+        : ByteReader(fileBytes: dbfBytes);
 
     dbf = dbfWebFileReader == null ? null : DbaseFileReader(dbfWebFileReader);
   }
@@ -301,15 +301,15 @@ class ShapefileFeatureReader {
   }
 }
 
-/// Implementation of [AFileReader] to support [PlatformFile]s including web.
-class PlatformFileReader extends AFileReader {
+/// Implementation of [AFileReader] to support raw bytes.
+class ByteReader extends AFileReader {
   /// Bytes for the file.
   final List<int> fileBytes;
 
   /// Used to house the file bytes as a mock of an actual [io.File].
   late LByteBuffer channel;
 
-  PlatformFileReader({required this.fileBytes}) {
+  ByteReader({required this.fileBytes}) {
     channel = LByteBuffer.fromData(fileBytes);
   }
 
