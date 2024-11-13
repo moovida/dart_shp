@@ -1,5 +1,6 @@
 library dart_shp;
 
+import 'dart:math';
 import 'dart:typed_data';
 import 'dart:io';
 import 'package:dart_hydrologis_utils/dart_hydrologis_utils.dart';

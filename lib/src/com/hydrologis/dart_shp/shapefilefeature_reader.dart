@@ -54,6 +54,29 @@ class ShapefileFeatureReader {
     }
   }
 
+  /// Constructor to support raw bytes.
+  ShapefileFeatureReader.fromBytes({
+    required Uint8List shpBytes,
+    Uint8List? dbfBytes,
+    Uint8List? shxBytes,
+  }) {
+
+    ByteReader? shxWebFileReader = shxBytes == null
+        ? null
+        : ByteReader(fileBytes: shxBytes);
+
+    ByteReader shpWebFileReader =
+        ByteReader(fileBytes: shpBytes);
+
+    shp = ShapefileReader(shpWebFileReader, shxWebFileReader);
+
+    ByteReader? dbfWebFileReader = dbfBytes == null
+        ? null
+        : ByteReader(fileBytes: dbfBytes);
+
+    dbf = dbfWebFileReader == null ? null : DbaseFileReader(dbfWebFileReader);
+  }
+
   Future<void> open() async {
     await dbf?.open();
     await shp.open();
@@ -275,5 +298,84 @@ class ShapefileFeatureReader {
 
   ShapeType getShapeType() {
     return shp.getHeader().shapeType;
+  }
+}
+
+/// Implementation of [AFileReader] to support raw bytes.
+class ByteReader extends AFileReader {
+  /// Bytes for the file.
+  final List<int> fileBytes;
+
+  /// Used to house the file bytes as a mock of an actual [io.File].
+  late LByteBuffer channel;
+
+  ByteReader({required this.fileBytes}) {
+    channel = LByteBuffer.fromData(fileBytes);
+  }
+
+  @override
+  Future<int> getByte() async {
+    return channel.getByte();
+  }
+
+  @override
+  Future<List<int>> get(int bytesCount) async {
+    return channel.get(bytesCount);
+  }
+
+  @override
+  Future<int> readIntoBuffer(LByteBuffer buffer) async {
+    int read = min(buffer.remaining, channel.remaining);
+    buffer.put(LByteBuffer.fromData(channel.get(read)));
+
+    if (read <= 0) {
+      return -1;
+    }
+
+    return read;
+  }
+
+  @override
+  Future<LByteBuffer> getBuffer(int bytesCount) async {
+    return LByteBuffer.fromData(channel.get(bytesCount));
+  }
+
+  @override
+  Future<int> getInt32([Endian endian = Endian.big]) async {
+    var data = Uint8List.fromList(channel.get(4));
+    return ByteConversionUtilities.getInt32(data, endian);
+  }
+
+  @override
+  Future<double> getDouble64([Endian endian = Endian.big]) async {
+    var data = Uint8List.fromList(channel.get(8));
+    return ByteConversionUtilities.getDouble64(data, endian);
+  }
+
+  @override
+  Future<double> getDouble32([Endian endian = Endian.big]) async {
+    var data = Uint8List.fromList(channel.get(4));
+    return ByteConversionUtilities.getDouble32(data, endian);
+  }
+
+  @override
+  Future skip(int bytesToSkip) async {
+    channel.get(bytesToSkip);
+  }
+
+  @override
+  bool get isOpen => true;
+
+  Future<void> setPosition(int newPosition) async {
+    channel.skip(newPosition - channel.position);
+  }
+
+  Future<int> position() async {
+    return channel.position;
+  }
+
+  @override
+  void close() {
+    // Do nothing.
   }
 }
