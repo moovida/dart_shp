@@ -418,16 +418,20 @@ class FieldFormatter {
         /* Should we use toString for integral numbers as well? */
       } else {
         var maxDig = decimalPlaces > 16 ? 16 : decimalPlaces;
-        var toAdd = decimalPlaces - 16;
 
-        numFormat.maximumFractionDigits = maxDig;
-        numFormat.minimumFractionDigits = decimalPlaces;
-        // FieldPosition fp = new FieldPosition(NumberFormat.FRACTION_FIELD);
-        // numFormat.format(n, buffer, fp);
-        String numStr = numFormat.format(n);
-        for (var i = 0; i < toAdd; i++) {
-          numStr += '0';
-        }
+        // var toAdd = decimalPlaces - 16;
+
+        // numFormat.maximumFractionDigits = maxDig;
+        // numFormat.minimumFractionDigits = decimalPlaces;
+        // // FieldPosition fp = new FieldPosition(NumberFormat.FRACTION_FIELD);
+        // // numFormat.format(n, buffer, fp);
+        // String numStr = numFormat.format(n);
+        // for (var i = 0; i < toAdd; i++) {
+        //   numStr += '0';
+        // }
+
+        String numStr = n.toStringAsFixed(maxDig);
+
         buffer.write(numStr);
 
         // large-magnitude numbers may overflow the field size in non-exponent notation,
