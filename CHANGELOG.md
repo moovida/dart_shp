@@ -1,4 +1,9 @@
 
+## 1.2.0
+
+- add PlatformFile support (for web or other platforms) (raphael-bmec-co)
+- fixed issue with wrong formatting in dbase file
+
 ## 1.1.1
 
 - add example for pub (sheldoncoup)
