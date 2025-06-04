@@ -52,7 +52,7 @@ void mainPolygon() {
   final poly = geometryFactory.createPolygonFromCoords(coordinates);
 
   // Initialize the writer and write the single polygon to file
-  final writer = PolyWriter([poly], ShapeType.POLYGON);
+  final writer = PolygonWriter([poly], ShapeType.POLYGON);
 
   writer.write(FileWriter(File('path/to/shp/file.shp')),
       FileWriter(File('path/to/shx/file.shx')));

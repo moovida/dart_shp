@@ -583,14 +583,13 @@ void main() async {
         Coordinate(0.100, 0.300),
         Coordinate(0.300, 0.300),
         Coordinate(0.300, 0.200),
-        Coordinate(0.100, 0.300),
       ];
 
-      var ring = GeometryFactory.defaultPrecision()
-          .createLinearRing(List<Coordinate>.from(id2Coor));
+      var line = GeometryFactory.defaultPrecision()
+          .createLineString(List<Coordinate>.from(id2Coor));
 
       List<Geometry> geoms = [];
-      geoms.add(GeometryFactory.defaultPrecision().createPolygonFromRing(ring));
+      geoms.add(line);
 
       var shpTemp = FileUtilities.getTmpFile('shp');
       var shxTemp = File(shpTemp.path.replaceAll('.shp', '.shx'));
@@ -602,7 +601,7 @@ void main() async {
       var writer = ShapefileWriter(geoms, ShapeType.ARC, shpWriter, shxWriter);
       await writer.write();
       writer.close();
-      
+
       DbaseFileHeader header = DbaseFileHeader();
       header.addColumn('ID', 'C', 200, 0);
 

@@ -1,4 +1,8 @@
 
+## 1.2.0+1
+
+ - fix for shapefilewriter in case of linestrings
+
 ## 1.2.0
 
 - add PlatformFile support (for web or other platforms) (raphael-bmec-co)
